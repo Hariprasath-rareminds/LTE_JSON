@@ -1,14 +1,15 @@
 ﻿{
   "table_name": "modules_content",
-  "description": "Content details for each module in the learning paths and tracks and 6e stages of learning",
+  "description": "Maps a module to its 6E stages. One row per module per stage. Acts as the stage container; actual content lives in 6e_content.",
   "primary_key": "id",
+
   "fields": [
     {
       "name": "id",
       "type": "uuid",
       "required": true,
       "primary_key": true,
-      "description": "Unique module identifier",
+      "description": "Unique identifier for this module-stage record",
       "example": "mod-content-001"
     },
     {
@@ -16,156 +17,31 @@
       "type": "uuid",
       "required": true,
       "foreign_key": "modules.id",
-      "description": "Module this content belongs to",
+      "description": "Module this stage record belongs to",
       "example": "mod-001"
-    },
-    {
-      "name": "content_type",
-      "type": "varchar",
-      "required": true,
-      "enum": [
-        "pdf",
-        "doc",
-        "video",
-        "image",
-        "slide",
-        "link",
-        "audio",
-        "text"
-      ],
-      "description": "Type of content",
-      "example": "video"
     },
     {
       "name": "stage_name",
       "type": "varchar",
       "required": true,
-      "enum": [
-        "engage",
-        "explore",
-        "explain",
-        "express",
-        "empower",
-        "evolve"
-      ],
-      "description": "6E stage this content is associated with",
+      "enum": ["engage", "explore", "explain", "express", "empower", "evolve"],
+      "description": "6E stage this record represents for the module",
       "example": "engage"
     },
     {
-      "name": "title",
-      "type": "varchar",
-      "required": true,
-      "description": "Title of the content piece",
-      "example": "Introduction to Node.js"
-    },
-    {
-      "name": "description",
-      "type": "text",
-      "required": false,
-      "nullable": true,
-      "description": "Brief description of the content",
-      "example": "This video covers the basics of Node.js, including setup and core concepts."
-    },
-    {
-      "name": "url",
-      "type": "varchar",
-      "required": true,
-      "description": "URL or path to access the content",
-      "example": "https://example.com/content/nodejs-intro.mp4"
-    },
-    {
-      "name": "sort_order",
+      "name": "stage_order",
       "type": "integer",
       "required": true,
-      "default": 1,
-      "description": "Display sequence order within the same module and stage",
+      "description": "Fixed display order of the stage within the module. 1=engage, 2=explore, 3=explain, 4=express, 5=empower, 6=evolve",
       "example": 1
     },
     {
-      "name": "duration_seconds",
-      "type": "integer",
-      "required": false,
-      "nullable": true,
-      "description": "Duration of the content in seconds (applicable for videos and audio)",
-      "example": 900
-    },
-    {
-      "name": "mime_type",
-      "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "enum": [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-powerpoint",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "application/zip",
-        "application/x-zip-compressed",
-        "application/json",
-        "application/xml",
-        "application/octet-stream",
-        "text/plain",
-        "text/html",
-        "text/csv",
-        "text/markdown",
-        "video/mp4",
-        "video/webm",
-        "video/ogg",
-        "video/quicktime",
-        "audio/mpeg",
-        "audio/ogg",
-        "audio/wav",
-        "audio/webm",
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-        "image/svg+xml"
-      ],
-      "description": "MIME type of the content file",
-      "example": "video/mp4"
-    },
-    {
-      "name": "file_size_bytes",
-      "type": "integer",
-      "required": false,
-      "nullable": true,
-      "description": "Size of the content file in bytes",
-      "example": 20971520
-    },
-    {
-      "name": "version",
-      "type": "integer",
+      "name": "is_active",
+      "type": "boolean",
       "required": true,
-      "description": "Version of the content, useful for tracking updates",
-      "example": 1
-    },
-    {
-      "name": "status",
-      "type": "varchar",
-      "required": true,
-      "enum": [
-        "draft",
-        "published",
-        "archived"
-      ],
-      "description": "Current status of the content",
-      "example": "draft"
-    },
-    {
-      "name": "metadata_json",
-      "type": "json",
-      "required": false,
-      "nullable": true,
-      "description": "optional small flexible metadata field for additional content only if needed, such as transcript availability, content creator info, or other relevant details that don't require a full separate field",
-      "example": {
-        "transcript_available": true,
-        "content_creator": "John Doe",
-        "language": "en"
-      }
+      "default": true,
+      "description": "Whether this stage is active and visible to learners",
+      "example": true
     },
     {
       "name": "created_at",
@@ -182,119 +58,48 @@
       "example": "2024-01-01T00:00:00Z"
     }
   ],
+
+  "unique_constraints": [
+    {
+      "name": "uq_modules_content_module_stage",
+      "columns": ["module_id", "stage_name"],
+      "description": "Each module can have only one record per 6E stage"
+    }
+  ],
+
   "indexes": [
     {
       "name": "idx_modules_content_module_id",
-      "columns": [
-        "module_id"
-      ],
-      "description": "Get all content items for a specific module"
+      "columns": ["module_id"],
+      "description": "Get all stage records for a module"
     },
     {
       "name": "idx_modules_content_stage_name",
-      "columns": [
-        "stage_name"
-      ],
-      "description": "Filter content by 6E stage"
+      "columns": ["stage_name"],
+      "description": "Filter by 6E stage across all modules"
     },
     {
-      "name": "idx_modules_content_status",
-      "columns": [
-        "status"
-      ],
-      "description": "Show only published/draft/archived content"
-    },
-    {
-      "name": "idx_modules_content_content_type",
-      "columns": [
-        "content_type"
-      ],
-      "description": "Filter content assets by type (video, pdf, slide, etc.)"
-    },
-    {
-      "name": "idx_modules_content_module_stage_sort",
-      "columns": [
-        "module_id",
-        "stage_name",
-        "sort_order"
-      ],
+      "name": "idx_modules_content_module_stage_order",
+      "columns": ["module_id", "stage_order"],
       "type": "composite",
-      "description": "Fetch module content ordered within each 6E stage"
+      "description": "Fetch stages in sequence for a module"
     }
   ],
+
   "relationships": [
     {
-      "related_table": "modules",
       "type": "many_to_one",
-      "foreign_key": "module_id"
-    }
-  ],
-  "modules_content": [
-    {
-      "id": "mod-content-001",
-      "module_id": "mod-001",
-      "content_type": "video",
-      "stage_name": "engage",
-      "title": "Incident Kickoff: API Latency Spike",
-      "description": "Scenario brief for a production API latency incident where learners step into the backend engineer role and identify first investigation priorities.",
-      "url": "https://content.rareminds.dev/se-be-obs-01/mod-001/engage/incident-kickoff.mp4",
-      "sort_order": 1,
-      "duration_seconds": 540,
-      "mime_type": "video/mp4",
-      "file_size_bytes": 73400320,
-      "version": 1,
-      "status": "published ",
-      "metadata_json": {
-        "transcript_available": true,
-        "language": "en",
-        "source": "client_requirement_seed"
-      },
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
+      "related_table": "modules",
+      "local_key": "module_id",
+      "foreign_key": "id",
+      "description": "Each stage record belongs to one module"
     },
     {
-      "id": "mod-content-002",
-      "module_id": "mod-001",
-      "content_type": "pdf",
-      "stage_name": "explore",
-      "title": "Failure Investigation Worksheet",
-      "description": "Guided worksheet to inspect logs, request traces, and service interactions before forming hypotheses.",
-      "url": "https://content.rareminds.dev/se-be-obs-01/mod-001/explore/failure-investigation-worksheet.pdf",
-      "sort_order": 2,
-      "duration_seconds": null,
-      "mime_type": "application/pdf",
-      "file_size_bytes": 1572864,
-      "version": 1,
-      "status": "published ",
-      "metadata_json": {
-        "downloadable": true,
-        "language": "en",
-        "source": "client_requirement_seed"
-      },
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "id": "mod-content-003",
-      "module_id": "mod-002",
-      "content_type": "slide",
-      "stage_name": "explain",
-      "title": "Structured Logging Design Principles",
-      "description": "Explains structured logging fields, severity levels, and request context required for high-signal incident diagnosis.",
-      "url": "https://content.rareminds.dev/se-be-obs-01/mod-002/explain/structured-logging-principles.ppt",
-      "sort_order": 1,
-      "duration_seconds": null,
-      "mime_type": "application/vnd.ms-powerpoint",
-      "file_size_bytes": 3145728,
-      "version": 1,
-      "status": "draft ",
-      "metadata_json": {
-        "has_speaker_notes": true,
-        "language": "en",
-        "source": "client_requirement_seed"
-      },
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
+      "type": "one_to_many",
+      "related_table": "6e_content",
+      "local_key": "id",
+      "foreign_key": "modules_content_id",
+      "description": "One stage record can have multiple content pieces"
     }
   ]
 }

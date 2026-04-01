@@ -1,0 +1,194 @@
+{
+  "table_name": "6e_content",
+  "description": "Individual content pieces within a 6E stage of a module. One row per content item. Multiple content items can exist per stage.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique content item identifier",
+      "example": "6ec-001"
+    },
+    {
+      "name": "modules_content_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "modules_content.id",
+      "description": "The module-stage record this content belongs to",
+      "example": "mod-content-001"
+    },
+    {
+      "name": "content_type",
+      "type": "varchar",
+      "required": true,
+      "enum": ["pdf", "doc", "video", "image", "slide", "link", "audio", "text"],
+      "description": "Type of content asset",
+      "example": "video"
+    },
+    {
+      "name": "title",
+      "type": "varchar",
+      "required": true,
+      "description": "Title of the content piece",
+      "example": "Introduction to Node.js"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Brief description of the content",
+      "example": "This video covers the basics of Node.js, including setup and core concepts."
+    },
+    {
+      "name": "url",
+      "type": "varchar",
+      "required": true,
+      "description": "URL or path to access the content",
+      "example": "https://example.com/content/nodejs-intro.mp4"
+    },
+    {
+      "name": "sort_order",
+      "type": "integer",
+      "required": true,
+      "default": 1,
+      "description": "Display sequence order of this content item within the stage",
+      "example": 1
+    },
+    {
+      "name": "duration_seconds",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "description": "Duration in seconds — applicable for video and audio content types only",
+      "example": 900
+    },
+    {
+      "name": "mime_type",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/json",
+        "application/xml",
+        "application/octet-stream",
+        "text/plain",
+        "text/html",
+        "text/csv",
+        "text/markdown",
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/quicktime",
+        "audio/mpeg",
+        "audio/ogg",
+        "audio/wav",
+        "audio/webm",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/svg+xml"
+      ],
+      "description": "MIME type of the content file",
+      "example": "video/mp4"
+    },
+    {
+      "name": "file_size_bytes",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "description": "Size of the content file in bytes",
+      "example": 20971520
+    },
+    {
+      "name": "version",
+      "type": "integer",
+      "required": true,
+      "default": 1,
+      "description": "Version number of this content item. Increment on updates.",
+      "example": 1
+    },
+    {
+      "name": "status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["draft", "published", "archived"],
+      "default": "draft",
+      "description": "Current publish status of the content item",
+      "example": "published"
+    },
+    {
+      "name": "metadata_json",
+      "type": "json",
+      "required": false,
+      "nullable": true,
+      "description": "Flexible metadata for additional content attributes such as transcript availability, language, or content creator info",
+      "example": {
+        "transcript_available": true,
+        "content_creator": "John Doe",
+        "language": "en"
+      }
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_6e_content_modules_content_id",
+      "columns": ["modules_content_id"],
+      "description": "Fetch all content items for a specific module-stage record"
+    },
+    {
+      "name": "idx_6e_content_content_type",
+      "columns": ["content_type"],
+      "description": "Filter content items by asset type"
+    },
+    {
+      "name": "idx_6e_content_status",
+      "columns": ["status"],
+      "description": "Filter by publish status"
+    },
+    {
+      "name": "idx_6e_content_modules_content_sort",
+      "columns": ["modules_content_id", "sort_order"],
+      "type": "composite",
+      "description": "Fetch content items in display order within a stage"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "modules_content",
+      "local_key": "modules_content_id",
+      "foreign_key": "id",
+      "description": "Each content item belongs to one module-stage record"
+    }
+  ]
+}

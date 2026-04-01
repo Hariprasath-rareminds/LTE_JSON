@@ -1,0 +1,164 @@
+﻿{
+  "table_name": "learner_module_progress",
+  "description": "Module-level progress header per learner per module. Stores overall module status, completion, artifact submission, and activity timestamps, while 6E stage-level tracking is maintained in learner_6e_stage_progress. Replaces the old deeply nested learning_paths.courses progress structure. One row per learner per module.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique record identifier",
+      "example": "lmp-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner this progress record belongs to",
+      "example": "learner-001"
+    },
+    {
+      "name": "learning_path_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learning_paths.id",
+      "description": "Learning path context for this progress record",
+      "example": "path-001"
+    },
+    {
+      "name": "course_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "courses.course_id",
+      "description": "Course this module belongs to",
+      "example": "SE-BE-OBS-01"
+    },
+    {
+      "name": "module_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "modules.id",
+      "description": "Module being tracked",
+      "example": "mod-001"
+    },
+    {
+      "name": "module_status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["not_started", "in_progress", "completed"],
+      "default": "not_started",
+      "description": "Overall module completion status",
+      "example": "in_progress"
+    },
+    {
+      "name": "completion_percentage",
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "description": "Module completion percentage 0â€“100 based on 6E stages completed",
+      "example": 20
+    },
+
+    {
+      "name": "artifact_submitted",
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "Whether the learner has submitted the module evaluation artifact",
+      "example": false
+    },
+    {
+      "name": "last_activity_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "Timestamp of most recent learner activity in this module",
+      "example": "2024-01-21T00:00:00Z"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-21T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_lmp_learner_id",
+      "columns": ["learner_id"]
+    },
+    {
+      "name": "idx_lmp_module_id",
+      "columns": ["module_id"]
+    },
+    {
+      "name": "idx_lmp_learning_path_id",
+      "columns": ["learning_path_id"]
+    },
+    {
+      "name": "idx_lmp_learner_module",
+      "columns": ["learner_id", "module_id"],
+      "type": "composite",
+      "unique": true
+    },
+    {
+      "name": "idx_lmp_module_status",
+      "columns": ["module_id", "module_status"],
+      "type": "composite",
+      "description": "Fast lookup: all learners at a given status for a module"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learning_paths",
+      "local_key": "learning_path_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "modules",
+      "local_key": "module_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "learner_6e_stage_progress",
+      "local_key": "id",
+      "foreign_key": "learner_module_progress_id"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "lmp-001",
+      "learner_id": "learner-001",
+      "learning_path_id": "path-001",
+      "course_id": "SE-BE-OBS-01",
+      "module_id": "mod-001",
+      "module_status": "in_progress",
+      "completion_percentage": 20,
+      "artifact_submitted": false,
+      "last_activity_at": "2024-01-21T00:00:00Z",
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-21T00:00:00Z"
+    }
+  ]
+}

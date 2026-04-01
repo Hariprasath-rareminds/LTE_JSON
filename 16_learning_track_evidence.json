@@ -1,0 +1,195 @@
+﻿{
+  "table_name": "learning_track_evidence",
+  "description": "Evidence statements supporting each learning track recommendation, split from learning_tracks for cleaner normalization.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique learning track evidence identifier",
+      "example": "lte-001"
+    },
+    {
+      "name": "learning_track_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learning_tracks.id",
+      "description": "Learning track this evidence belongs to",
+      "example": "track-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Denormalized learner id for direct filtering",
+      "example": "learner-001"
+    },
+    {
+      "name": "assessment_id",
+      "type": "uuid",
+      "required": true,
+      "description": "Assessment identifier that generated this evidence",
+      "example": "assessment-001"
+    },
+    {
+      "name": "evidence_values",
+      "type": "text",
+      "required": true,
+      "description": "Values alignment insight behind recommendation",
+      "example": "Values reliability and system stability"
+    },
+    {
+      "name": "evidence_aptitude",
+      "type": "text",
+      "required": true,
+      "description": "Aptitude alignment insight behind recommendation",
+      "example": "Analytical mindset supports debugging and troubleshooting"
+    },
+    {
+      "name": "evidence_interest",
+      "type": "text",
+      "required": true,
+      "description": "Interest alignment insight behind recommendation",
+      "example": "Growing interest in observability and system monitoring"
+    },
+    {
+      "name": "evidence_personality",
+      "type": "text",
+      "required": true,
+      "description": "Personality alignment insight behind recommendation",
+      "example": "Conscientiousness and attention to detail fit production-grade systems"
+    },
+    {
+      "name": "evidence_employability",
+      "type": "text",
+      "required": true,
+      "description": "Employability alignment insight behind recommendation",
+      "example": "Strong communication skills aid in incident response and team collaboration"
+    },
+    {
+      "name": "evidence_adaptive_aptitude",
+      "type": "text",
+      "required": true,
+      "description": "Adaptive aptitude growth insight behind recommendation",
+      "example": "Ready to advance from fundamentals to production engineering practices"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_lte_learning_track_id",
+      "columns": ["learning_track_id"],
+      "type": "unique",
+      "description": "One evidence row per learning track"
+    },
+    {
+      "name": "idx_lte_learner_id",
+      "columns": ["learner_id"],
+      "description": "Filter evidence by learner"
+    },
+    {
+      "name": "idx_lte_assessment_id",
+      "columns": ["assessment_id"],
+      "description": "Filter evidence by assessment"
+    },
+    {
+      "name": "idx_lte_learner_assessment",
+      "columns": ["learner_id", "assessment_id"],
+      "type": "composite",
+      "description": "Get learner evidence set for a given assessment"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learning_tracks",
+      "local_key": "learning_track_id",
+      "foreign_key": "id",
+      "description": "Each evidence record belongs to one learning track"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "lte-001",
+      "learning_track_id": "track-001",
+      "learner_id": "learner-001",
+      "assessment_id": "assessment-001",
+      "evidence_values": "Values logical thinking and systematic problem-solving",
+      "evidence_aptitude": "Logical reasoning strength supports backend architecture",
+      "evidence_interest": "Strong inclination towards system design and infrastructure (RIASEC R score of 24)",
+      "evidence_personality": "High conscientiousness and logical thinking indicate strong fit for backend roles",
+      "evidence_employability": "Demonstrates strong problem-solving and teamwork skills",
+      "evidence_adaptive_aptitude": "Emerging aptitude level indicates potential for growth in backend development",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "lte-002",
+      "learning_track_id": "track-002",
+      "learner_id": "learner-001",
+      "assessment_id": "assessment-001",
+      "evidence_values": "Values reliability and system stability",
+      "evidence_aptitude": "Analytical mindset supports debugging and troubleshooting",
+      "evidence_interest": "Growing interest in observability and system monitoring",
+      "evidence_personality": "Conscientiousness and attention to detail fit production-grade systems",
+      "evidence_employability": "Strong communication skills aid in incident response and team collaboration",
+      "evidence_adaptive_aptitude": "Ready to advance from fundamentals to production engineering practices",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "lte-003",
+      "learning_track_id": "track-003",
+      "learner_id": "learner-002",
+      "assessment_id": "assessment-001",
+      "evidence_values": "Values data-driven decision making and analytical problem-solving",
+      "evidence_aptitude": "Intermediate analytical skills support model building and evaluation",
+      "evidence_interest": "Strong interest in predictive modeling and advanced analytics",
+      "evidence_personality": "Curiosity and persistence are aligned with iterative ML experimentation",
+      "evidence_employability": "ML capabilities improve readiness for high-demand data science roles",
+      "evidence_adaptive_aptitude": "Current intermediate base indicates strong potential to move toward advanced ML practice",
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-02-15T00:00:00Z"
+    },
+    {
+      "id": "lte-004",
+      "learning_track_id": "track-004",
+      "learner_id": "learner-002",
+      "assessment_id": "assessment-001",
+      "evidence_values": "Values practical business impact through reliable data systems",
+      "evidence_aptitude": "Data handling and analytical reasoning support pipeline and statistical work",
+      "evidence_interest": "Growing interest in scalable data engineering and evidence-based decisions",
+      "evidence_personality": "Structured thinking and consistency align with pipeline quality and data governance",
+      "evidence_employability": "Combining data engineering and statistics improves cross-functional job readiness",
+      "evidence_adaptive_aptitude": "Well-positioned to bridge current intermediate skills to production-level data workflows",
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-02-15T00:00:00Z"
+    }
+  ]
+}

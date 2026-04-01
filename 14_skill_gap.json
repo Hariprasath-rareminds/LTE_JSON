@@ -1,0 +1,191 @@
+﻿{
+  "table_name": "skill_gap",
+  "description": "Per-learner skill gap summary generated from assessment outputs, including priority skills, recommended tracks, and current strengths.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique skill gap record identifier",
+      "example": "sg-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner this skill gap record belongs to",
+      "example": "learner-001"
+    },
+    {
+      "name": "assessment_id",
+      "type": "uuid",
+      "required": true,
+      "description": "Assessment result id that produced this skill gap",
+      "example": "454cae3d-bf98-40cf-9b13-db27d343f5e9"
+    },
+    {
+      "name": "attempt_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "description": "Assessment attempt identifier",
+      "example": "ad872bf9-cb65-4d6a-9b07-1d27f8d013ba"
+    },
+    {
+      "name": "priorities",
+      "type": "json",
+      "required": true,
+      "description": "Priority skills list with explicit priority type (A or B)",
+      "structure": {
+        "priority_type": "Priority band: A or B",
+        "skill": "Skill name",
+        "whyNeeded": "Why skill is required",
+        "howToBuild": "How learner can improve",
+        "targetLevel": "Desired level",
+        "currentLevel": "Current level"
+      },
+      "example": [
+        {
+          "priority_type": "A",
+          "skill": "Technical Skills",
+          "whyNeeded": "To enhance employability in creative fields",
+          "howToBuild": "Enroll in design software courses",
+          "targetLevel": 3,
+          "currentLevel": 1
+        },
+        {
+          "priority_type": "B",
+          "skill": "Data Interpretation",
+          "whyNeeded": null,
+          "howToBuild": null,
+          "targetLevel": null,
+          "currentLevel": null
+        }
+      ]
+    },
+    {
+      "name": "learning_tracks",
+      "type": "json",
+      "required": true,
+      "description": "Suggested learning tracks and topic bundles",
+      "structure": {
+        "track": "Track name",
+        "topics": "Recommended topic list",
+        "suggestedIf": "Recommendation trigger"
+      },
+      "example": [
+        {
+          "track": "Graphic Design",
+          "topics": "Adobe Creative Suite, Typography, Color Theory",
+          "suggestedIf": "Interested in visual arts"
+        }
+      ]
+    },
+    {
+      "name": "current_strengths",
+      "type": "json",
+      "required": true,
+      "description": "Current strengths identified in assessment",
+      "example": ["Creativity", "Communication"]
+    },
+    {
+      "name": "recommended_track",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "description": "Single recommended primary track",
+      "example": "Digital Marketing"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2026-03-23T06:47:13.8812+00:00"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2026-03-23T06:47:13.8812+00:00"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_skill_gap_learner_id",
+      "columns": ["learner_id"],
+      "description": "Get skill gap summary by learner"
+    },
+    {
+      "name": "idx_skill_gap_assessment_id",
+      "columns": ["assessment_id"],
+      "description": "Get skill gap by assessment result"
+    },
+    {
+      "name": "idx_skill_gap_learner_assessment",
+      "columns": ["learner_id", "assessment_id"],
+      "type": "composite",
+      "unique": true,
+      "description": "One skill gap summary per learner per assessment"
+    },
+    {
+      "name": "idx_skill_gap_recommended_track",
+      "columns": ["recommended_track"],
+      "description": "Filter learners by recommended track"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id",
+      "description": "Each skill gap summary belongs to one learner"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "sg-001",
+      "learner_id": "learner-001",
+      "assessment_id": "454cae3d-bf98-40cf-9b13-db27d343f5e9",
+      "attempt_id": "ad872bf9-cb65-4d6a-9b07-1d27f8d013ba",
+      "priorities": [
+        {
+          "priority_type": "A",
+          "skill": "Technical Skills",
+          "whyNeeded": "To enhance employability in creative fields",
+          "howToBuild": "Enroll in design software courses",
+          "targetLevel": 3,
+          "currentLevel": 1
+        },
+        {
+          "priority_type": "B",
+          "skill": "Data Interpretation",
+          "whyNeeded": null,
+          "howToBuild": null,
+          "targetLevel": null,
+          "currentLevel": null
+        }
+      ],
+      "learning_tracks": [
+        {
+          "track": "Graphic Design",
+          "topics": "Adobe Creative Suite, Typography, Color Theory",
+          "suggestedIf": "Interested in visual arts"
+        }
+      ],
+      "current_strengths": ["Creativity", "Communication"],
+      "recommended_track": "Digital Marketing",
+      "created_at": "2026-03-23T06:47:13.8812+00:00",
+      "updated_at": "2026-03-23T06:47:13.8812+00:00"
+    }
+  ]
+}

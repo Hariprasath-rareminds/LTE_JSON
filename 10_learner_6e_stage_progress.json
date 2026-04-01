@@ -1,0 +1,179 @@
+﻿{
+  "table_name": "learner_6e_stage_progress",
+  "description": "One row per learner per 6E stage per module. Rows are created on entry â€” a row is inserted with in_progress when the learner first opens a stage, and updated to completed when they finish it. Absence of a row means the learner has not reached that stage yet. No pre-created rows, no locked/not_started states.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id", 
+       "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique record identifier",
+      "example": "lsp-001"
+    },
+    {
+      "name": "learner_module_progress_id",  
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_module_progress.id",
+      "description": "Parent module progress header this stage belongs to",
+      "example": "lmp-001"
+    },
+    {
+      "name": "learner_id",  
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Denormalized for fast direct queries without joining learner_module_progress",
+      "example": "learner-001"
+    },
+    {
+      "name": "module_id",  
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "modules.id",
+      "description": "Denormalized for fast direct queries",
+      "example": "mod-001"
+    },
+    {
+      "name": "stage_name",
+      "type": "varchar",
+      "required": true,
+      "enum": ["engage", "explore", "explain", "express", "empower", "evolve"],
+      "description": "Which of the 6E stages this row tracks",
+      "example": "engage"
+    },
+    {
+      "name": "stage_order",
+      "type": "integer",
+      "required": true,
+      "description": "Sequence order: 1=engage, 2=explore, 3=explain, 4=express, 5=empower, 6=evolve. Used by application to determine which stage to unlock next â€” when stage_order N is completed, insert stage_order N+1 row as in_progress.",
+      "example": 1
+    },
+    {
+      "name": "status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["in_progress", "completed"],
+      "description": "Stage status. in_progress = row inserted when learner first enters this stage. completed = updated when learner finishes. No other states needed â€” absence of a row means not yet reached.",
+      "example": "completed"
+    },
+    {
+      "name": "started_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "When the learner first opened this stage. Set on insert, never null.",
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "When the learner completed this stage. Null while in_progress, set when status moves to completed.",
+      "example": "2024-01-20T00:00:00Z"
+    },
+    {
+      "name": "time_spent_seconds",
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "description": "Total seconds spent in this stage across all sessions. Accumulated on each session end.",
+      "example": 3600
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-20T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_lsp_learner_module_progress_id",
+      "columns": ["learner_module_progress_id"],
+      "description": "Fast lookup of all stage rows under a module progress header"
+    },
+    {
+      "name": "idx_lsp_learner_module",
+      "columns": ["learner_id", "module_id"],
+      "type": "composite",
+      "description": "Primary lookup: all stages a learner has touched in a module"
+    },
+    {
+      "name": "idx_lsp_learner_module_stage",
+      "columns": ["learner_id", "module_id", "stage_name"],
+      "type": "composite",
+      "unique": true,
+      "description": "Enforces one row per learner per module per stage"
+    },
+    {
+      "name": "idx_lsp_stage_status",
+      "columns": ["stage_name", "status"],
+      "type": "composite",
+      "description": "Stage-level analytics: completion funnel, stuck learners per stage"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_module_progress",
+      "local_key": "learner_module_progress_id",
+      "foreign_key": "id",
+      "description": "Each stage row belongs to one module progress header"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "modules",
+      "local_key": "module_id",
+      "foreign_key": "id"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "lsp-001",
+      "learner_module_progress_id": "lmp-001",
+      "learner_id": "learner-001",
+      "module_id": "mod-001",
+      "stage_name": "engage",
+      "stage_order": 1,
+      "status": "completed",
+      "started_at": "2024-01-15T00:00:00Z",
+      "completed_at": "2024-01-20T00:00:00Z",
+      "time_spent_seconds": 3600,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-20T00:00:00Z"
+    },
+    {
+      "id": "lsp-002",
+      "learner_module_progress_id": "lmp-001",
+      "learner_id": "learner-001",
+      "module_id": "mod-001",
+      "stage_name": "explore",
+      "stage_order": 2,
+      "status": "in_progress",
+      "started_at": "2024-01-21T00:00:00Z",
+      "completed_at": null,
+      "time_spent_seconds": 1200,
+      "created_at": "2024-01-21T00:00:00Z",
+      "updated_at": "2024-01-21T00:00:00Z"
+    }
+  ]
+}
+

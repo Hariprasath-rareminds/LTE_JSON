@@ -1,0 +1,180 @@
+﻿{
+  "table_name": "artifact_templates",
+  "description": "Template layer for module artifacts. Stores downloadable docs/slides/sheets or external links used by learners.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique template identifier",
+      "example": "at-001"
+    },
+    {
+      "name": "artifact_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "module_artifacts.id",
+      "description": "Artifact this template supports",
+      "example": "ma-001"
+    },
+    {
+      "name": "question_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "artifact_questions.id",
+      "description": "Specific question this template is attached to. Null means the template applies to the entire artifact and is not question-specific.",
+      "example": "aq-001"
+    },
+    {
+      "name": "file_name",
+      "type": "varchar",
+      "required": true,
+      "description": "Display name of template file",
+      "example": "failure-investigation-map-template.docx"
+    },
+    {
+      "name": "file_url",
+      "type": "varchar",
+      "required": true,
+      "description": "Storage/CDN URL or external link",
+      "example": "https://content.rareminds.dev/templates/mod-001/failure-investigation-map-template.docx"
+    },
+    {
+      "name": "file_type",
+      "type": "varchar",
+      "required": true,
+      "enum": [
+        "doc",
+        "ppt",
+        "excel",
+        "pdf",
+        "mp4",
+        "mp3",
+        "jpeg",
+        "png",
+        "sheet",
+        "xls",
+        "docs",
+        "text",
+        "zip"
+      ],
+      "description": "Template file category",
+      "example": "doc"
+    },
+    {
+      "name": "version",
+      "type": "integer",
+      "required": true,
+      "description": "Template version number",
+      "example": 1
+    },
+    {
+      "name": "is_downloadable",
+      "type": "boolean",
+      "required": true,
+      "description": "Whether learner can download the file",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_artifact_templates_artifact_id",
+      "columns": ["artifact_id"],
+      "description": "Fetch templates attached to one artifact"
+    },
+    {
+      "name": "idx_artifact_templates_artifact_version",
+      "columns": ["artifact_id", "version"],
+      "type": "composite",
+      "description": "Resolve latest version per artifact"
+    },
+    {
+      "name": "idx_artifact_templates_file_type",
+      "columns": ["file_type"],
+      "description": "Filter templates by file category"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "module_artifacts",
+      "local_key": "artifact_id",
+      "foreign_key": "id",
+      "description": "Each template belongs to one module artifact"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "artifact_questions",
+      "local_key": "question_id",
+      "foreign_key": "id",
+      "description": "Each template may be associated with a specific question"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "at-001",
+      "artifact_id": "ma-001",
+      "file_name": "failure-investigation-map-template.docx",
+      "file_url": "https://content.rareminds.dev/templates/mod-001/failure-investigation-map-template.docx",
+      "file_type": "doc",
+      "version": 1,
+      "is_downloadable": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "at-002",
+      "artifact_id": "ma-001",
+      "file_name": "failure-investigation-checklist.pdf",
+      "file_url": "https://content.rareminds.dev/templates/mod-001/failure-investigation-checklist.pdf",
+      "file_type": "pdf",
+      "version": 1,
+      "is_downloadable": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "at-003",
+      "artifact_id": "ma-002",
+      "file_name": "final-report-scoring-rubric.xlsx",
+      "file_url": "https://content.rareminds.dev/templates/mod-001/final-report-scoring-rubric.xlsx",
+      "file_type": "excel",
+      "version": 2,
+      "is_downloadable": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-10T00:00:00Z"
+    },
+    {
+      "id": "at-004",
+      "artifact_id": "ma-003",
+      "file_name": "logging-patch-walkthrough",
+      "file_url": "https://docs.rareminds.dev/logging-patch-walkthrough",
+      "file_type": "link",
+      "version": 1,
+      "is_downloadable": false,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

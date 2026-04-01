@@ -1,0 +1,378 @@
+﻿{
+  "table_name": "modules",
+  "description": "Course modules with evaluation, continuity metadata, and linked 6E flow in separate table",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique module identifier",
+      "example": "mod-001"
+    },
+    {
+      "name": "course_id",
+        "type": "uuid",
+      "required": true,
+      "foreign_key": "courses.course_id",
+      "description": "Course identifier linked to courses table",
+      "example": "SE-BE-OBS-01"
+    },
+    {
+      "name": "module_no",
+      "type": "integer",
+      "required": true,
+      "description": "Module sequence number",
+      "example": 1
+    },
+    {
+      "name": "title",
+      "type": "varchar",
+      "required": true,
+      "description": "Module title",
+      "example": "System Failure Investigation"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": true,
+      "description": "Module summary",
+      "example": "Learn how to investigate and debug system failures in production environments."
+    },
+    {
+      "name": "engineering_workflow_stage",
+      "type": "varchar",
+      "required": true,
+      "description": "Stage in engineering incident workflow",
+      "example": "System Investigation"
+    },
+    {
+      "name": "module_specific_problem_statement",
+      "type": "text",
+      "required": true,
+      "description": "Specific real-world problem for the module",
+      "example": "Production API latency increases during peak traffic."
+    },
+    {
+      "name": "pressure_points",
+      "type": "text",
+      "required": true,
+      "description": "Industry pressure points in this module",
+      "example": "Engineers rely on print statements and cannot locate failure source."
+    },
+    {
+      "name": "student_confusion",
+      "type": "text",
+      "required": true,
+      "description": "Common student confusion",
+      "example": "How backend systems fail under load."
+    },
+    {
+      "name": "learning_content",
+      "type": "json",
+      "required": true,
+      "description": "Concept-level learning content for module understanding and application",
+      "structure": {
+        "major_concepts": "Core concepts covered in this module",
+        "implementation_context_when_to_use": "Context or scenarios where concepts should be applied",
+        "reason_behind_concept": "Why the concept matters in real-world engineering"
+      }
+    },
+    {
+      "name": "support",
+      "type": "json",
+      "required": true,
+      "description": "AI support and module continuity",
+      "structure": {
+        "ai_support_tips": "Tip for learner support",
+        "module_continuity_link": "How this module feeds next module"
+      }
+    },
+    {
+      "name": "knowledge",
+      "type": "json",
+      "required": true,
+      "description": "Technical and academic refresher mapping",
+      "structure": {
+        "technical_concepts_learnt": "Technical concepts",
+        "academic_refresher_concepts": "Academic refresher"
+      }
+    },
+    {
+      "name": "tools",
+      "type": "json",
+      "required": true,
+      "description": "Tool information for module execution",
+      "structure": {
+        "tools_used": "Tool category",
+        "tool_type_free_or_paid": "Pricing type"
+      }
+    },
+    {
+      "name": "version_no",
+      "type": "integer",
+      "required": true,
+      "default": 1,
+      "description": "Content version number for this module. Increment on updates.",
+      "example": 1
+    },
+    {
+      "name": "is_published",
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "Whether this module version is published and visible to learners.",
+      "example": true
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether module is active",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_modules_course_id",
+      "columns": ["course_id"],
+      "description": "Get all modules for a course"
+    },
+    {
+      "name": "idx_modules_course_module_no",
+      "columns": ["course_id", "module_no"],
+      "type": "composite",
+      "description": "Get modules in sequential order for a course"
+    },
+    {
+      "name": "idx_modules_engineering_workflow_stage",
+      "columns": ["engineering_workflow_stage"],
+      "description": "Filter by workflow stage (System Investigation, Signal Analysis, etc)"
+    },
+    {
+      "name": "idx_modules_is_active",
+      "columns": ["is_active"],
+      "description": "Show only active modules"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "courses",
+      "local_key": "course_id",
+      "foreign_key": "course_id",
+      "description": "Each module belongs to one course"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "modules_content",
+      "local_key": "id",
+      "foreign_key": "module_id",
+      "description": "One module can have multiple content pieces"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "learner_module_progress",
+      "local_key": "id",
+      "foreign_key": "module_id",
+      "description": "One module can have progress records for many learners"
+    }
+  ],
+
+  "modules": [
+    {
+      "id": "mod-001",
+      "course_id": "SE-BE-OBS-01",
+      "module_no": 1,
+      "title": "System Failure Investigation",
+      "description": "Learn how to investigate and debug system failures in production environments.",
+      "engineering_workflow_stage": "System Investigation",
+      "module_specific_problem_statement": "Production API latency increases during peak traffic.",
+      "pressure_points": "Engineers rely on print statements and cannot locate failure source.",
+      "student_confusion": "How backend systems fail under load.",
+      "learning_content": {
+        "major_concepts": "System architecture, request lifecycle, observability overview",
+        "implementation_context_when_to_use": "Understanding system interactions before debugging",
+        "reason_behind_concept": "Logs investigation"
+      },
+      "support": {
+        "ai_support_tips": "Foundation for logging module",
+        "module_continuity_link": "Output becomes input baseline for Module 2 structured logging."
+      },
+      "knowledge": {
+        "technical_concepts_learnt": "Operating systems basics",
+        "academic_refresher_concepts": "Logs dashboards"
+      },
+      "tools": {
+        "tools_used": "Free",
+        "tool_type_free_or_paid": null
+      },
+      "version_no": 1,
+      "is_published": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "mod-002",
+      "course_id": "SE-BE-OBS-01",
+      "module_no": 2,
+      "title": "Structured Logging",
+      "description": "Learn how to produce high-signal logs for faster incident diagnosis.",
+      "engineering_workflow_stage": "Signal Analysis (Logging)",
+      "module_specific_problem_statement": "System failures lack traceability due to poor logging.",
+      "pressure_points": "Developers rely on console prints.",
+      "student_confusion": "What meaningful logs look like.",
+      "learning_content": {
+        "major_concepts": "Structured logging, log levels",
+        "implementation_context_when_to_use": "Implement logs for observability",
+        "reason_behind_concept": "Review poorly logged systems"
+      },
+      "support": {
+        "ai_support_tips": "Feeds debugging workflow",
+        "module_continuity_link": "Log report guides debugger inspection in Module 3."
+      },
+      "knowledge": {
+        "technical_concepts_learnt": "Programming basics",
+        "academic_refresher_concepts": "Python logging"
+      },
+      "tools": {
+        "tools_used": "Free",
+        "tool_type_free_or_paid": null
+      },
+      "version_no": 1,
+      "is_published": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "mod-003",
+      "course_id": "SE-BE-OBS-01",
+      "module_no": 3,
+      "title": "Debugging Tools",
+      "description": "Use breakpoints and runtime inspection to isolate backend failures.",
+      "engineering_workflow_stage": "Runtime Diagnosis (Debugging)",
+      "module_specific_problem_statement": "Backend bug crashes services in production.",
+      "pressure_points": "Developers cannot reproduce bugs locally.",
+      "student_confusion": "Debugger usage unclear.",
+      "learning_content": {
+        "major_concepts": "Breakpoints, stack traces",
+        "implementation_context_when_to_use": "Use debugging tools systematically",
+        "reason_behind_concept": "Inspect failing backend service"
+      },
+      "support": {
+        "ai_support_tips": "Builds on logging analysis",
+        "module_continuity_link": "Debug trace identifies conditions to reproduce in Module 4."
+      },
+      "knowledge": {
+        "technical_concepts_learnt": "Processes and threads",
+        "academic_refresher_concepts": "VS Code debugger"
+      },
+      "tools": { "tools_used": "Free", "tool_type_free_or_paid": null },
+      "version_no": 1, "is_published": true, "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "mod-004",
+      "course_id": "SE-BE-OBS-01",
+      "module_no": 4,
+      "title": "Reproducing Bugs",
+      "description": "Create controlled test setups to reproduce intermittent production defects.",
+      "engineering_workflow_stage": "Bug Reproduction",
+      "module_specific_problem_statement": "Intermittent production bug cannot be replicated.",
+      "pressure_points": "Developers guess fixes.",
+      "student_confusion": "How to reproduce bugs systematically.",
+      "learning_content": {
+        "major_concepts": "Test cases, controlled reproduction",
+        "implementation_context_when_to_use": "Recreate failure conditions",
+        "reason_behind_concept": "Analyze intermittent bug"
+      },
+      "support": {
+        "ai_support_tips": "Supports root cause discovery",
+        "module_continuity_link": "Reproduction plan supplies validated failure conditions for Module 5 RCA."
+      },
+      "knowledge": {
+        "technical_concepts_learnt": "Operating systems",
+        "academic_refresher_concepts": "Test frameworks"
+      },
+      "tools": { "tools_used": "Free", "tool_type_free_or_paid": null },
+      "version_no": 1, "is_published": true, "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "mod-005",
+      "course_id": "SE-BE-OBS-01",
+      "module_no": 5,
+      "title": "Root Cause Analysis",
+      "description": "Separate symptom and cause to produce evidence-based corrective actions.",
+      "engineering_workflow_stage": "Root Cause Identification",
+      "module_specific_problem_statement": "Engineers fix symptoms rather than root cause.",
+      "pressure_points": "Temporary fixes hide underlying issue.",
+      "student_confusion": "Root cause analysis process.",
+      "learning_content": {
+        "major_concepts": "Root cause analysis frameworks",
+        "implementation_context_when_to_use": "Identify underlying system issue",
+        "reason_behind_concept": "Review production incident"
+      },
+      "support": {
+        "ai_support_tips": "Leads into final project",
+        "module_continuity_link": "RCA report drives final resolution and validation in Module 6."
+      },
+      "knowledge": {
+        "technical_concepts_learnt": "System concepts",
+        "academic_refresher_concepts": "Logs debugger"
+      },
+      "tools": { "tools_used": "Free", "tool_type_free_or_paid": null },
+      "version_no": 1, "is_published": true, "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "mod-006",
+      "course_id": "SE-BE-OBS-01",
+      "module_no": 6,
+      "title": "Observability Incident Resolution Capstone",
+      "description": "Execute end-to-end incident handling from investigation to validated fix and communication.",
+      "engineering_workflow_stage": "Incident Resolution Capstone",
+      "module_specific_problem_statement": "Learners must investigate, diagnose, and resolve a realistic backend production incident using a full observability workflow.",
+      "pressure_points": "Engineers must combine logs, debugging, and RCA.",
+      "student_confusion": "Complete debugging workflow.",
+      "learning_content": {
+        "major_concepts": "Observability debugging workflow",
+        "implementation_context_when_to_use": "End to end investigation",
+        "reason_behind_concept": "Review full production scenario"
+      },
+      "support": {
+        "ai_support_tips": "Integrates all modules",
+        "module_continuity_link": "Integrates all prior module artifacts into one capstone output."
+      },
+      "knowledge": {
+        "technical_concepts_learnt": "Programming OS",
+        "academic_refresher_concepts": "Logs debugger monitoring"
+      },
+      "tools": { "tools_used": "Free", "tool_type_free_or_paid": null },
+      "version_no": 1, "is_published": true, "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+

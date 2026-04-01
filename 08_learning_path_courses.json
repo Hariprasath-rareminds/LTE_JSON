@@ -1,0 +1,163 @@
+﻿{
+  "table_name": "learning_path_courses",
+  "description": "Ordered course assignments within a learning path. Replaces the courses JSON array that was embedded inside learning_paths. One row per course per path.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique record identifier",
+      "example": "lpc-001"
+    },
+    {
+      "name": "learning_path_id",  
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learning_paths.id",
+      "description": "Learning path this course belongs to",
+      "example": "path-001"
+    },
+    {
+      "name": "course_id",    
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "courses.course_id",
+      "description": "Course from the course catalog",
+      "example": "SE-BE-OBS-01"
+    },
+    {
+      "name": "sequence_no",
+      "type": "integer",
+      "required": true,
+      "description": "Order of this course within the path (1-based)",
+      "example": 1
+    },
+    {
+      "name": "relevance_score",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "description": "Relevance score 0â€“100 for this course within the learner's path",
+      "example": 33
+    },
+    {
+      "name": "match_reason",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Short reason why this course was included in the path",
+      "example": "Covers essential backend development skills aligned with the student's learning track."
+    },
+    {
+      "name": "why_recommended",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Longer justification for recommendation shown to the learner",
+      "example": "Covers essential backend development skills aligned with the student's learning track."
+    },
+    {
+      "name": "status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["not_started", "in_progress", "completed"],
+      "default": "not_started",
+      "description": "Learner's current status for this course",
+      "example": "in_progress"
+    },
+    {
+      "name": "completion_percentage",
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "description": "Overall course completion percentage 0â€“100, derived from module progress",
+      "example": 17
+    },
+    {
+      "name": "started_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "When the learner started this course",
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "When the learner completed this course",
+      "example": null
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-15T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_lpc_learning_path_id",
+      "columns": ["learning_path_id"]
+    },
+    {
+      "name": "idx_lpc_course_id",
+      "columns": ["course_id"]
+    },
+    {
+      "name": "idx_lpc_status",
+      "columns": ["status"]
+    },
+    {
+      "name": "idx_lpc_path_course",
+      "columns": ["learning_path_id", "course_id"],
+      "type": "composite",
+      "unique": true
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learning_paths",
+      "local_key": "learning_path_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "courses",
+      "local_key": "course_id",
+      "foreign_key": "course_id"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "lpc-001",
+      "learning_path_id": "path-001",
+      "course_id": "SE-BE-OBS-01",
+      "sequence_no": 1,
+      "relevance_score": 33,
+      "match_reason": "Covers essential backend development skills aligned with the student's learning track.",
+      "why_recommended": "Covers essential backend development skills aligned with the student's learning track.",
+      "status": "in_progress",
+      "completion_percentage": 17,
+      "started_at": "2024-01-15T00:00:00Z",
+      "completed_at": null,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
+    }
+  ]
+}
+

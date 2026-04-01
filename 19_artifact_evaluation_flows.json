@@ -1,0 +1,245 @@
+{
+  "table_name": "artifact_evaluation_flows",
+  "description": "Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique evaluation flow record identifier",
+      "example": "aef-001"
+    },
+    {
+      "name": "submission_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "artifact_submissions.id",
+      "description": "The submission attempt this stage belongs to",
+      "example": "as-001"
+    },
+
+    {
+      "name": "stage",
+      "type": "varchar",
+      "required": true,
+      "enum": ["ai", "staff", "industry"],
+      "description": "Which evaluator stage this row represents",
+      "example": "staff"
+    },
+    {
+      "name": "stage_order",
+      "type": "integer",
+      "required": true,
+      "description": "Execution order. ai=1, staff=2, industry=3",
+      "example": 2
+    },
+    {
+      "name": "status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["pending", "in_progress", "completed", "skipped"],
+      "default": "pending",
+      "description": "Lifecycle state of this stage",
+      "example": "in_progress"
+    },
+
+    {
+      "name": "evaluated_by",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "users.id",
+      "description": "Evaluator user ID. NULL for AI stage, required for staff and industry stages.",
+      "example": "reviewer-007"
+    },
+    {
+      "name": "score",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "description": "Score awarded at this stage. Null until stage completes.",
+      "example": 78
+    },
+    {
+      "name": "feedback",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Reviewer comments for this stage",
+      "example": "Strong evidence mapping. Improve hypothesis prioritization."
+    },
+    {
+      "name": "improvements",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Improvement points flagged at this stage",
+      "example": "Add trace correlation IDs and rank hypotheses by confidence."
+    },
+    {
+      "name": "decision",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["pass", "fail", "return", "escalate", "skip"],
+      "description": "Stage outcome. escalate = move to next stage. return = send back for rework.",
+      "example": "escalate"
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "When this stage was completed",
+      "example": "2024-01-21T11:45:00Z"
+    },
+
+    {
+      "name": "overall_status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["initiated", "in_progress", "completed", "returned_for_rework", "approved", "rejected"],
+      "default": "initiated",
+      "description": "Rolled-up flow status across all stages. Updated as stages progress.",
+      "example": "in_progress"
+    },
+    {
+      "name": "is_current_stage",
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "True for the stage currently active. Only one row per submission can be true at a time.",
+      "example": true
+    },
+
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-21T11:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-21T11:45:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_evaluated_by_required",
+      "type": "check",
+      "rule": "stage = 'ai' AND evaluated_by IS NULL OR stage IN ('staff', 'industry') AND evaluated_by IS NOT NULL",
+      "description": "AI stage must have no evaluator. Staff and industry stages must have one."
+    },
+    {
+      "name": "chk_score_range",
+      "type": "check",
+      "rule": "score IS NULL OR (score >= 0 AND score <= 100)",
+      "description": "Score must be between 0 and 100 if provided."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_aef_submission_id",
+      "columns": ["submission_id"],
+      "description": "Fetch all stage rows for a submission"
+    },
+    {
+      "name": "idx_aef_submission_stage",
+      "columns": ["submission_id", "stage"],
+      "unique": true,
+      "description": "One row per stage per submission"
+    },
+    {
+      "name": "idx_aef_current_stage",
+      "columns": ["submission_id", "is_current_stage"],
+      "description": "Fast fetch of the active stage for a submission"
+    },
+    {
+      "name": "idx_aef_evaluated_by",
+      "columns": ["evaluated_by"],
+      "description": "Fetch all stages assigned to a specific evaluator"
+    },
+    {
+      "name": "idx_aef_overall_status",
+      "columns": ["overall_status"],
+      "description": "Filter flows by overall status across all submissions"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "artifact_submissions",
+      "local_key": "submission_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "users",
+      "local_key": "evaluated_by",
+      "foreign_key": "id",
+      "description": "Nullable — only for staff and industry stages"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "aef-001",
+      "submission_id": "as-001",
+      "stage": "ai",
+      "stage_order": 1,
+      "status": "completed",
+      "evaluated_by": null,
+      "score": 62,
+      "feedback": "Clear incident context. Add stronger evidence correlation.",
+      "improvements": "Strengthen evidence chain with trace IDs.",
+      "decision": "escalate",
+      "completed_at": "2024-01-21T11:00:00Z",
+      "overall_status": "in_progress",
+      "is_current_stage": false,
+      "created_at": "2024-01-21T10:15:00Z",
+      "updated_at": "2024-01-21T11:00:00Z"
+    },
+    {
+      "id": "aef-002",
+      "submission_id": "as-001",
+      "stage": "staff",
+      "stage_order": 2,
+      "status": "in_progress",
+      "evaluated_by": "reviewer-007",
+      "score": null,
+      "feedback": null,
+      "improvements": null,
+      "decision": null,
+      "completed_at": null,
+      "overall_status": "in_progress",
+      "is_current_stage": true,
+      "created_at": "2024-01-21T11:00:00Z",
+      "updated_at": "2024-01-21T11:00:00Z"
+    },
+    {
+      "id": "aef-003",
+      "submission_id": "as-001",
+      "stage": "industry",
+      "stage_order": 3,
+      "status": "pending",
+      "evaluated_by": null,
+      "score": null,
+      "feedback": null,
+      "improvements": null,
+      "decision": null,
+      "completed_at": null,
+      "overall_status": "in_progress",
+      "is_current_stage": false,
+      "created_at": "2024-01-21T11:00:00Z",
+      "updated_at": "2024-01-21T11:00:00Z"
+    }
+  ]
+}

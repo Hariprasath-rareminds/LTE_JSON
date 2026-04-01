@@ -1,0 +1,275 @@
+{
+  "table_name": "capabilities_master",
+  "description": "Master capability reference table. Each row is one unique capability entry sourced directly from the client's Role L1 Gap Model. Fields map 1:1 to client columns. The capability_id is not unique alone — the same ID groups multiple named capabilities under one library domain.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Surrogate UUID primary key"
+    },
+    {
+      "name": "capability_id",
+      "type": "varchar",
+      "required": true,
+      "description": "Client canonical ID from Role L1 Gap Model. e.g. SE-CAP-01. Not unique alone.",
+      "example": "SE-CAP-01"
+    },
+    {
+      "name": "capability_library",
+      "type": "varchar",
+      "required": true,
+      "description": "Capability (Library) column from client model. Groups capabilities into a domain area.",
+      "example": "Software Development"
+    },
+    {
+      "name": "capability",
+      "type": "varchar",
+      "required": true,
+      "description": "Capability column from client model. The specific named capability.",
+      "example": "Backend Service Development"
+    },
+    {
+  "name": "role_id",
+  "type": "uuid",
+  "required": true,
+  "foreign_key": "roles.id",
+  "description": "Role this capability belongs to. Every capability is tied to one industry role.",
+  "example": "role-001"
+},
+    {
+      "name": "domain_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "domains.id",
+      "description": "FK to domains table. Derived from capability_library mapping."
+    },
+    {
+      "name": "industry_outcome",
+      "type": "text",
+      "required": true,
+      "description": "Industry Outcome column from client model.",
+      "example": "Build maintainable backend services that implement business logic correctly."
+    },
+    {
+      "name": "academic_coverage",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "description": "Academic Coverage column from client model.",
+      "example": "Programming, Object Oriented Programming, Data Structures"
+    },
+    {
+      "name": "correct_academic_subject",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "description": "Correct Academic Subject column from client model.",
+      "example": "Programming Fundamentals"
+    },
+    {
+      "name": "major_topics_refresher",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Major Topics (Refresher) column from client model.",
+      "example": "Variables, Data Types, Operators, Control Flow, Functions"
+    },
+    {
+      "name": "capability_gap",
+      "type": "text",
+      "required": true,
+      "description": "Capability Gap column from client model.",
+      "example": "Graduates can write functional code but struggle to structure backend services."
+    },
+    {
+      "name": "skill_gap_learning_outcomes",
+      "type": "text",
+      "required": true,
+      "description": "Skill Gap (Learning Outcomes) column from client model.",
+      "example": "Design modular service structure; separate controllers, services, and data layers."
+    },
+    {
+      "name": "gap_review_status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["Approved", "Needs Revision"],
+      "description": "Gap Review Status column from client model.",
+      "example": "Approved"
+    },
+    {
+      "name": "micro_gap_examples",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Micro Gap Examples column from client model.",
+      "example": "Hardcoded values; poor naming conventions; missing validation."
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether this capability is active in the system."
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2026-03-31T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2026-03-31T00:00:00Z"
+    }
+  ],
+
+  "unique_constraints": [
+    {
+      "name": "uq_capabilities_master_id_capability",
+      "columns": ["capability_id", "capability"],
+      "description": "capability_id + capability name must be unique"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_capabilities_master_capability_id",
+      "columns": ["capability_id"],
+      "description": "Group all named capabilities under a given capability_id"
+    },
+    {
+      "name": "idx_capabilities_master_domain_id",
+      "columns": ["domain_id"],
+      "description": "Find all capabilities under a domain"
+    },
+    {
+      "name": "idx_capabilities_master_gap_review_status",
+      "columns": ["gap_review_status"],
+      "description": "Filter by review status"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "domains",
+      "local_key": "domain_id",
+      "foreign_key": "id",
+      "description": "Each capability belongs to one domain"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "learner_capabilities",
+      "local_key": "id",
+      "foreign_key": "capability_id",
+      "description": "One master capability maps to many learner capability records"
+    },{
+  "type": "many_to_one",
+  "related_table": "roles",
+  "local_key": "role_id",
+  "foreign_key": "id",
+  "description": "Each capability belongs to one role"
+}
+  ],
+
+  "note": "sample_records below are a representative subset. Full seed data contains ~180 unique capabilities across 240 source rows from Role_L1_Gap_Model.json.",
+
+  "sample_records": [
+    {
+      "id": "cap-uuid-001",
+      "capability_id": "SE-CAP-01",
+      "capability_library": "Software Development",
+      "capability": "Backend Service Development",
+      "domain_id": "dom-001",
+      "industry_outcome": "Build maintainable backend services that implement business logic correctly and follow team coding standards.",
+      "academic_coverage": "Programming, Object Oriented Programming, Data Structures",
+      "correct_academic_subject": "Programming Fundamentals",
+      "major_topics_refresher": "Variables, Data Types, Operators, Control Flow, Functions, Arrays/Collections, Object-Oriented Programming, Data Structures, Error Handling, Basic Algorithms",
+      "capability_gap": "Graduates can write functional code but struggle to structure backend services suitable for production environments.",
+      "skill_gap_learning_outcomes": "Design modular service structure; separate controllers, services, and data layers; implement validation and error handling; apply coding standards; refactor code based on review feedback.",
+      "gap_review_status": "Approved",
+      "micro_gap_examples": "Hardcoded values; poor naming conventions; missing validation; duplicate logic across modules.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    },
+    {
+      "id": "cap-uuid-002",
+      "capability_id": "SE-CAP-01",
+      "capability_library": "Software Development",
+      "capability": "Full-Stack Application Coding",
+      "domain_id": "dom-001",
+      "industry_outcome": "Build frontend and backend code components that work together to deliver usable application features.",
+      "academic_coverage": "Programming, basic web development concepts",
+      "correct_academic_subject": "Programming Fundamentals",
+      "major_topics_refresher": "Variables, Data Types, Operators, Control Flow, Functions, Arrays/Collections, Object-Oriented Programming, Data Structures, Error Handling, Basic Algorithms",
+      "capability_gap": "Students understand programming concepts but struggle to implement business logic across both frontend and backend layers.",
+      "skill_gap_learning_outcomes": "Develop feature logic across UI and service layers; structure reusable code; connect interface actions to business rules.",
+      "gap_review_status": "Approved",
+      "micro_gap_examples": "Duplicated logic across layers; fragile feature implementation; weak code organization.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    },
+    {
+      "id": "cap-uuid-003",
+      "capability_id": "SE-CAP-02",
+      "capability_library": "API Engineering",
+      "capability": "API Design & Implementation",
+      "domain_id": "dom-002",
+      "industry_outcome": "Develop REST APIs that expose application functionality and follow consistent request/response patterns.",
+      "academic_coverage": "Programming, Computer Networks",
+      "correct_academic_subject": "Computer Networks",
+      "major_topics_refresher": "OSI Model, TCP/IP, HTTP/HTTPS, DNS, Routing, IP Addressing, Network Protocols, Client–Server Communication",
+      "capability_gap": "Students understand HTTP basics but cannot design production-ready API endpoints or manage API contracts.",
+      "skill_gap_learning_outcomes": "Design REST endpoints using proper resources and verbs; return correct HTTP status codes; implement request validation; structure response payloads; implement pagination and filtering.",
+      "gap_review_status": "Approved",
+      "micro_gap_examples": "Always returning HTTP 200; inconsistent API responses; unclear endpoint naming; missing validation.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    },
+    {
+      "id": "cap-uuid-004",
+      "capability_id": "SE-CAP-08",
+      "capability_library": "Observability Basics",
+      "capability": "Debugging & Observability",
+      "domain_id": "dom-008",
+      "industry_outcome": "Diagnose and resolve runtime issues using logs, debugging tools, and systematic troubleshooting.",
+      "academic_coverage": "Programming, Operating Systems",
+      "correct_academic_subject": "Operating Systems",
+      "major_topics_refresher": "Processes, Threads, Memory Management, File Systems, Scheduling, System Calls, Concurrency, Deadlocks",
+      "capability_gap": "Students debug small programs but lack structured approaches to diagnosing production issues.",
+      "skill_gap_learning_outcomes": "Interpret stack traces; use debuggers effectively; implement structured logging; reproduce bugs through test cases; isolate root causes; write bug reports.",
+      "gap_review_status": "Approved",
+      "micro_gap_examples": "Using print statements instead of logs; inability to reproduce bugs; fixing symptoms instead of root cause.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    },
+    {
+      "id": "cap-uuid-005",
+      "capability_id": "SE-CAP-14",
+      "capability_library": "CI/CD & Release Engineering",
+      "capability": "Application Deployment Basics",
+      "domain_id": "dom-012",
+      "industry_outcome": "Deploy applications to runtime environments using standard deployment processes.",
+      "academic_coverage": "Operating Systems, basic networking",
+      "correct_academic_subject": "Operating Systems",
+      "major_topics_refresher": "Processes, Threads, Memory Management, File Systems, Scheduling, System Calls, Concurrency, Deadlocks",
+      "capability_gap": "Students understand programs but lack experience deploying applications into real runtime environments.",
+      "skill_gap_learning_outcomes": "Package applications for deployment; run applications in server environments; understand environment variables and configuration.",
+      "gap_review_status": "Approved",
+      "micro_gap_examples": "Hardcoded configuration; inability to run applications outside local machine.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    }
+  ]
+}

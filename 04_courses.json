@@ -1,0 +1,208 @@
+﻿{
+  "table_name": "courses",
+  "description": "Course catalog with recommendation and progression metadata used in learning paths",
+  "primary_key": "course_id",
+
+  "fields": [
+    {
+      "name": "course_id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique course identifier",
+      "example": "SE-BE-OBS-01"
+    },
+    {
+      "name": "course_code",
+      "type": "varchar",
+      "required": true,
+      "unique": true,
+      "description": "Human-readable course code",
+      "example": "BE-OBS-101"
+    },
+    {
+      "name": "title",
+      "type": "varchar",
+      "required": true,
+      "description": "Course title",
+      "example": "Debugging & Observability for Backend Systems"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": true,
+      "description": "Course summary",
+      "example": "Learn how to debug and monitor backend systems for better performance and stability."
+    },
+    {
+      "name": "thumbnail_url",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "description": "Course thumbnail image URL",
+      "example": "https://example.com/course-thumbnail.jpg"
+    },
+    {
+      "name": "job_pathway_role",
+      "type": "varchar",
+      "required": true,
+      "description": "Primary job role this course supports",
+      "example": "Backend Engineer"
+    },
+    {
+      "name": "domain_id",
+      "type": "uuid",
+      "required": true,
+      "description": "Reference to domains table for course classification",
+      "example": "dom-001"
+    },
+    {
+      "name": "duration",
+      "type": "varchar",
+      "required": true,
+      "description": "Estimated duration to complete",
+      "example": "45 hours"
+    },
+    {
+      "name": "difficulty_level",
+      "type": "varchar",
+      "required": true,
+      "enum": ["beginner", "intermediate", "advanced"],
+      "description": "Course difficulty",
+      "example": "beginner"
+    },
+    {
+      "name": "certification_value",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "description": "Primary certification outcome",
+      "example": "System debugging"
+    },
+    {
+      "name": "common_course_problem_statement",
+      "type": "text",
+      "required": true,
+      "description": "Real-world problem statement framing the course",
+      "example": "Production backend service begins failing under load and engineers must identify root causes using logs, debugging tools and structured investigation."
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether the course is active in catalog",
+      "example": true
+    },
+    {
+      "name": "version_no",
+      "type": "integer",
+      "required": true,
+      "default": 1,
+      "description": "Content version number for the course",
+      "example": 1
+    },
+    {
+      "name": "is_published",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether this course version is published for learner runtime",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_courses_course_code",
+      "columns": ["course_code"],
+      "type": "unique",
+      "description": "Fast course lookup by human-readable code"
+    },
+    {
+      "name": "idx_courses_role",
+      "columns": ["job_pathway_role"],
+      "description": "Find all courses for a specific job role (Backend Engineer, Data Scientist)"
+    },
+    {
+      "name": "idx_courses_domain_id",
+      "columns": ["domain_id"],
+      "description": "Find all courses for a specific domain"
+    },
+    {
+      "name": "idx_courses_difficulty_level",
+      "columns": ["difficulty_level"],
+      "description": "Filter courses by skill tier (beginner, intermediate, advanced)"
+    },
+    {
+      "name": "idx_courses_is_active",
+      "columns": ["is_active"],
+      "description": "Show only active courses"
+    },
+    {
+      "name": "idx_courses_is_published",
+      "columns": ["is_published"],
+      "description": "Show only published courses (hide drafts)"
+    },
+    {
+      "name": "idx_courses_role_difficulty",
+      "columns": ["job_pathway_role", "difficulty_level"],
+      "type": "composite",
+      "description": "Get beginner courses for specific role"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "domains",
+      "local_key": "domain_id",
+      "foreign_key": "id",
+      "description": "Each course belongs to one domain"
+    },
+    {
+      "type": "many_to_many",
+      "related_table": "capabilities_master",
+      "junction_table": "course_capabilities",
+      "local_key": "course_id",
+      "foreign_key": "capability_id",
+      "description": "A course can cover multiple capabilities from capabilities_master via course_capabilities junction table"
+    }
+  ],
+
+  "courses": [
+    {
+      "course_id": "SE-BE-OBS-01",
+      "course_code": "BE-OBS-101",
+      "domain_id": "dom-008",
+      "title": "Debugging & Observability for Backend Systems",
+      "description": "Learn how to debug and monitor backend systems for better performance and stability.",
+      "thumbnail_url": "https://example.com/course-thumbnail.jpg",
+      "job_pathway_role": "Backend Engineer",
+      "duration": "45 hours",
+      "difficulty_level": "beginner",
+      "certification_value": "System debugging",
+      "common_course_problem_statement": "Production backend service begins failing under load and engineers must identify root causes using logs, debugging tools and structured investigation.",
+      "is_active": true,
+      "version_no": 1,
+      "is_published": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+

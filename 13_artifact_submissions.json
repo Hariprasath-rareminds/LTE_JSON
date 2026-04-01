@@ -1,0 +1,294 @@
+﻿{
+  "table_name": "artifact_submissions",
+  "description": "Learner submission records for module artifacts. One row per attempt. Evaluation details live in artifact_evaluation_flows.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique submission identifier",
+      "example": "as-001"
+    },
+    {
+      "name": "artifact_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "module_artifacts.id",
+      "description": "Artifact being submitted",
+      "example": "ma-002"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner who submitted",
+      "example": "learner-001"
+    },
+    {
+      "name": "learner_module_progress_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_module_progress.id",
+      "description": "Module progress context for this submission",
+      "example": "lmp-001"
+    },
+
+  
+    {
+      "name": "attempt_no",
+      "type": "integer",
+      "required": true,
+      "default": 1,
+      "description": "Submission attempt number for this learner and artifact",
+      "example": 1
+    },
+    {
+      "name": "version_label",
+      "type": "varchar",
+      "required": true,
+      "description": "Human-readable version label derived from attempt_no. e.g. v1, v2, v3",
+      "example": "v1"
+    },
+    {
+      "name": "is_latest",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "True for the most recent attempt for a learner-artifact pair. Flipped to false when a new attempt is inserted.",
+      "example": true
+    },
+    {
+      "name": "previous_submission_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "artifact_submissions.id",
+      "description": "Self-referential pointer to the immediately preceding attempt. Null for attempt_no = 1.",
+      "example": "as-001"
+    },
+
+    
+    {
+      "name": "submission_mode",
+      "type": "varchar",
+      "required": true,
+      "enum": ["fast", "normal"],
+      "default": "normal",
+      "description": "fast = learner skipped directly to submit. normal = went step-by-step through module content first.",
+      "example": "normal"
+    },
+    {
+      "name": "submission_text",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Inline learner response for text-based submissions",
+      "example": "Root cause likely originates from unbounded DB retries under high load."
+    },  
+    {
+      "name": "status",
+      "type": "varchar",
+      "required": true,
+      "enum": ["draft", "submitted", "under_review", "evaluated", "returned_for_rework", "approved", "rejected"],
+      "default": "submitted",
+      "description": "Current lifecycle state of the submission attempt",
+      "example": "under_review"
+    },
+    {
+      "name": "evaluation_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "artifact_evaluation_flows.submission_id",
+      "description": "Links to the evaluation flow for this attempt. Null until evaluation is initiated.",
+      "example": "aef-001"
+    },
+
+  
+    {
+      "name": "submitted_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "When the learner submitted this attempt",
+      "example": "2024-01-21T10:15:00Z"
+    },
+    {
+      "name": "sealed_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "Timestamp when this attempt was locked and can no longer be edited. Null while status is draft.",
+      "example": "2024-01-21T10:15:00Z"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-21T10:15:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-21T10:15:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_submission_content",
+      "type": "check",
+      "rule": "submission_url IS NOT NULL OR submission_text IS NOT NULL",
+      "description": "At least one of submission_url or submission_text must be provided."
+    },
+    {
+      "name": "chk_previous_submission_first_attempt",
+      "type": "check",
+      "rule": "attempt_no = 1 AND previous_submission_id IS NULL OR attempt_no > 1 AND previous_submission_id IS NOT NULL",
+      "description": "First attempt must have no previous_submission_id. All subsequent attempts must have one."
+    },
+    {
+      "name": "chk_version_label_format",
+      "type": "check",
+      "rule": "version_label = CONCAT('v', attempt_no::text)",
+      "description": "version_label must always match attempt_no. v1 for attempt 1, v2 for attempt 2, and so on."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_as_artifact_id",
+      "columns": ["artifact_id"]
+    },
+    {
+      "name": "idx_as_learner_id",
+      "columns": ["learner_id"]
+    },
+    {
+      "name": "idx_as_lmp_id",
+      "columns": ["learner_module_progress_id"]
+    },
+    {
+      "name": "idx_as_artifact_learner_attempt",
+      "columns": ["artifact_id", "learner_id", "attempt_no"],
+      "unique": true,
+      "description": "Enforces unique attempt number per learner and artifact"
+    },
+    {
+      "name": "idx_as_latest",
+      "columns": ["artifact_id", "learner_id", "is_latest"],
+      "description": "Fast fetch of latest attempt per learner-artifact pair"
+    },
+    {
+      "name": "idx_as_status",
+      "columns": ["status"],
+      "description": "Filter submissions by lifecycle state"
+    },
+    {
+      "name": "idx_as_evaluation_id",
+      "columns": ["evaluation_id"],
+      "description": "Join to evaluation flow records"
+    },
+    {
+      "name": "idx_as_previous_submission_id",
+      "columns": ["previous_submission_id"],
+      "description": "Walk version chain backwards from any attempt"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "module_artifacts",
+      "local_key": "artifact_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learner_module_progress",
+      "local_key": "learner_module_progress_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "artifact_evaluation_flows",
+      "local_key": "id",
+      "foreign_key": "submission_id",
+      "description": "One submission has up to 3 evaluation stage rows"
+    },
+    {
+      "type": "self_referential",
+      "related_table": "artifact_submissions",
+      "local_key": "previous_submission_id",
+      "foreign_key": "id",
+      "description": "Links each attempt to its predecessor forming the version chain"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "as-001",
+      "artifact_id": "ma-002",
+      "learner_id": "learner-001",
+      "learner_module_progress_id": "lmp-001",
+      "attempt_no": 1,
+      "version_label": "v1",
+      "is_latest": false,
+      "previous_submission_id": null,
+      "submission_mode": "normal",
+      "submission_text": null,
+      "status": "returned_for_rework",
+      "evaluation_id": "aef-001",
+      "submitted_at": "2024-01-21T10:15:00Z",
+      "sealed_at": "2024-01-21T10:15:00Z",
+      "created_at": "2024-01-21T10:15:00Z",
+      "updated_at": "2024-01-21T11:00:00Z"
+    },
+    {
+      "id": "as-002",
+      "artifact_id": "ma-002",
+      "learner_id": "learner-001",
+      "learner_module_progress_id": "lmp-001",
+      "attempt_no": 2,
+      "version_label": "v2",
+      "is_latest": true,
+      "previous_submission_id": "as-001",
+      "submission_mode": "fast",
+      "submission_text": "Updated report includes trace-to-service mapping and ranked hypotheses.",
+      "status": "approved",
+      "evaluation_id": "aef-004",
+      "submitted_at": "2024-01-22T09:20:00Z",
+      "sealed_at": "2024-01-22T09:20:00Z",
+      "created_at": "2024-01-22T09:20:00Z",
+      "updated_at": "2024-01-22T10:00:00Z"
+    },
+    {
+      "id": "as-003",
+      "artifact_id": "ma-001",
+      "learner_id": "learner-001",
+      "learner_module_progress_id": "lmp-001",
+      "attempt_no": 1,
+      "version_label": "v1",
+      "is_latest": true,
+      "previous_submission_id": null,
+      "submission_mode": "normal",
+      "submission_text": "Drafted failure investigation map with impacted services and probable fault zones.",
+      "status": "submitted",
+      "evaluation_id": null,
+      "submitted_at": "2024-01-20T18:40:00Z",
+      "sealed_at": null,
+      "created_at": "2024-01-20T18:40:00Z",
+      "updated_at": "2024-01-20T18:40:00Z"
+    }
+  ]
+}

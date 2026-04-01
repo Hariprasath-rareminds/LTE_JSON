@@ -1,0 +1,89 @@
+{
+  "table_name": "domains",
+  "description": "Master domain taxonomy derived from Role L1 model. Used to classify courses and capabilities under a normalized domain reference.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique domain identifier",
+      "example": "dom-001"
+    },
+    {
+      "name": "code",
+      "type": "varchar",
+      "required": true,
+      "unique": true,
+      "description": "Short unique code for domain",
+      "example": "SE"
+    },
+    {
+      "name": "name",
+      "type": "varchar",
+      "required": true,
+      "description": "Display name of the domain",
+      "example": "Software Engineering"
+    },
+     {
+      "name": "industry",
+      "type": "varchar",
+      "required": true,
+      "description": "Industry sector",
+      "example": "Information Technology & AI"
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether domain is active",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2026-03-30T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2026-03-30T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_domains_code",
+      "columns": ["code"],
+      "type": "unique",
+      "description": "Fast lookup by domain code"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "dom-001",
+      "code": "D001",
+      "name": "Backend Engineering",
+      "industry": "Information Technology & AI",
+      "is_active": true,
+      "created_at": "2026-03-30T00:00:00Z",
+      "updated_at": "2026-03-30T00:00:00Z"
+    },
+    {
+      "id": "dom-002",
+      "code": "D002",
+      "name": "Frontend Engineering",
+      "is_active": true,
+      "created_at": "2026-03-30T00:00:00Z",
+      "updated_at": "2026-03-30T00:00:00Z"
+    }
+  ]
+}

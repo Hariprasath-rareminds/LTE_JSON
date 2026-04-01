@@ -1,0 +1,169 @@
+{
+  "table_name": "artifact_questions",
+  "description": "Individual questions or tasks within a module artifact. One artifact can have multiple questions each with their own title, description, instructions and submission requirement.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique question identifier",
+      "example": "aq-001"
+    },
+    {
+      "name": "artifact_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "module_artifacts.id",
+      "description": "Artifact this question belongs to",
+      "example": "ma-001"
+    },
+    {
+      "name": "order",
+      "type": "integer",
+      "required": true,
+      "description": "Display order of this question within the artifact. Starts at 1.",
+      "example": 1
+    },
+    {
+      "name": "title",
+      "type": "varchar",
+      "required": true,
+      "description": "Question title shown to learner",
+      "example": "Failure Investigation Map"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": true,
+      "description": "What the learner needs to complete for this question",
+      "example": "Map the incident timeline, affected services, and likely failure points."
+    },
+    {
+      "name": "instructions",
+      "type": "text",
+      "required": true,
+      "description": "Detailed task steps for this question",
+      "example": "1) Review incident brief. 2) Mark signal sources. 3) Build failure map."
+    },
+    {
+      "name": "submission_required",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether this specific question requires a submission from the learner.",
+      "example": true
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether this question is active and visible to learners.",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_order_positive",
+      "type": "check",
+      "rule": "order >= 1",
+      "description": "Order must start at 1 or above."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_aq_artifact_id",
+      "columns": ["artifact_id"],
+      "description": "Fetch all questions for an artifact"
+    },
+    {
+      "name": "idx_aq_artifact_order",
+      "columns": ["artifact_id", "order"],
+      "unique": true,
+      "description": "Enforce unique order per artifact and drive display sequence"
+    },
+    {
+      "name": "idx_aq_active",
+      "columns": ["artifact_id", "is_active"],
+      "description": "Fetch only active questions for an artifact"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "module_artifacts",
+      "local_key": "artifact_id",
+      "foreign_key": "id",
+      "description": "Each question belongs to one artifact"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "aq-001",
+      "artifact_id": "ma-001",
+      "order": 1,
+      "title": "Failure Investigation Map",
+      "description": "Create a first-pass incident map showing service boundaries and symptom points.",
+      "instructions": "1) Read incident context. 2) Draw request flow. 3) Mark weak signals.",
+      "submission_required": false,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "aq-002",
+      "artifact_id": "ma-001",
+      "order": 2,
+      "title": "Hypothesis List",
+      "description": "List at least 3 root-cause hypotheses based on your investigation map.",
+      "instructions": "1) Review your map. 2) List hypotheses. 3) Rank by likelihood.",
+      "submission_required": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "aq-003",
+      "artifact_id": "ma-002",
+      "order": 1,
+      "title": "Evidence Mapping",
+      "description": "Map log and trace evidence to each root-cause hypothesis.",
+      "instructions": "1) Pull relevant logs. 2) Attach trace IDs. 3) Map to hypotheses.",
+      "submission_required": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "aq-004",
+      "artifact_id": "ma-002",
+      "order": 2,
+      "title": "Final Investigation Report",
+      "description": "Submit a structured report with evidence-backed root-cause and next debugging actions.",
+      "instructions": "1) Refine your map. 2) Prioritize hypotheses. 3) Submit final report.",
+      "submission_required": true,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

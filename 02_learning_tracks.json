@@ -1,0 +1,168 @@
+{
+  "table_name": "learning_tracks",
+  "description": "Learning track recommendations mapped to each learner profile",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique learning track identifier",
+      "example": "track-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner identifier linked to learner profile",
+      "example": "learner-001"
+    },
+    {
+      "name": "assessment_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "assessments.id",
+      "description": "Assessment identifier that generated this track recommendation",
+      "example": "assessment-001"
+    },
+    {
+      "name": "fit",
+      "type": "varchar",
+      "required": true,
+      "enum": ["High", "Medium", "Low"],
+      "description": "Fit score label for track relevance",
+      "example": "High"
+    },
+    {
+      "name": "track",
+      "type": "varchar",
+      "required": true,
+      "description": "Recommended learning track name",
+      "example": "Backend Fundamentals"
+    },
+    {
+      "name": "matchScore",
+      "type": "integer",
+      "required": true,
+      "description": "Numeric match score for recommendation quality",
+      "example": 92
+    },
+    {
+      "name": "topics",
+      "type": "varchar",
+      "required": true,
+      "description": "Core topics covered in this learning track",
+      "example": "Node.js/Python, REST APIs, Database design, Authentication"
+    },
+    {
+      "name": "duration",
+      "type": "varchar",
+      "required": true,
+      "description": "Estimated completion time",
+      "example": "3 months"
+    },
+    {
+      "name": "whyItFits",
+      "type": "text",
+      "required": true,
+      "description": "Summary justification for why this track fits the learner",
+      "example": "The student's logical abilities and systematic thinking make backend engineering an ideal career path for building scalable systems."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_learning_tracks_learner_id",
+      "columns": ["learner_id"],
+      "description": "Get all recommendation tracks for a learner"
+    },
+    {
+      "name": "idx_learning_tracks_fit",
+      "columns": ["fit"],
+      "description": "Filter by fit quality (High, Medium, Low)"
+    },
+    {
+      "name": "idx_learning_tracks_match_score",
+      "columns": ["matchScore"],
+      "description": "Sort recommendations by quality score"
+    },
+    {
+      "name": "idx_learning_tracks_assessment_id",
+      "columns": ["assessment_id"],
+      "description": "Link track to assessment that generated it"
+    },
+    {
+      "name": "idx_learning_tracks_learner_fit",
+      "columns": ["learner_id", "fit"],
+      "type": "composite",
+      "description": "Get High/Medium/Low tracks for specific learner"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id",
+      "description": "Each learning track recommendation belongs to one learner profile"
+    },
+    {
+      "type": "one_to_one",
+      "related_table": "learning_track_evidence",
+      "local_key": "id",
+      "foreign_key": "learning_track_id",
+      "description": "Each learning track has one mapped evidence record"
+    }
+  ],
+
+  "learning_tracks": [
+    {
+      "id": "track-001",
+      "learner_id": "learner-001",
+      "assessment_id": "assessment-001",
+      "fit": "High",
+      "track": "Backend Fundamentals",
+      "matchScore": 92,
+      "topics": "Node.js/Python, REST APIs, Database design, Authentication",
+      "duration": "3 months",
+      "whyItFits": "The student's logical abilities and systematic thinking make backend engineering an ideal career path for building scalable systems."
+    },
+    {
+      "id": "track-002",
+      "learner_id": "learner-001",
+      "assessment_id": "assessment-001",
+      "fit": "High",
+      "track": "Production Readiness",
+      "matchScore": 85,
+      "topics": "Logging, Monitoring, Error handling, Performance optimization",
+      "duration": "2 months",
+      "whyItFits": "The student's problem-solving capability and emerging system design skills prepare them to handle production incidents and maintain reliable backend services."
+    },
+    {
+      "id": "track-003",
+      "learner_id": "learner-002",
+      "assessment_id": "assessment-001",
+      "fit": "High",
+      "track": "Machine Learning Engineering",
+      "matchScore": 89,
+      "topics": "Supervised/Unsupervised Learning, Model evaluation, Feature engineering, Experiment tracking",
+      "duration": "3 months",
+      "whyItFits": "The student's current intermediate capability in analytics and clear interest in predictive systems make machine learning engineering a highly relevant next step."
+    },
+    {
+      "id": "track-004",
+      "learner_id": "learner-002",
+      "assessment_id": "assessment-001",
+      "fit": "High",
+      "track": "Data Pipeline and Statistical Decisioning",
+      "matchScore": 84,
+      "topics": "ETL design, Python data workflows, Statistical inference, A/B testing",
+      "duration": "2 months",
+      "whyItFits": "The student's blend of data engineering progress and statistical foundation makes this track ideal for building end-to-end, decision-focused data products."
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+﻿{
+  "table_name": "profile_snapshot",
+  "description": "Per-learner profile snapshot extracted from assessment output, capturing key patterns and top aptitude strengths.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique profile snapshot record identifier",
+      "example": "ps-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner this snapshot belongs to",
+      "example": "learner-001"
+    },
+    {
+      "name": "assessment_id",
+      "type": "uuid",
+      "required": true,
+      "description": "Assessment result id that produced this snapshot",
+      "example": "454cae3d-bf98-40cf-9b13-db27d343f5e9"
+    },
+    {
+      "name": "attempt_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "description": "Assessment attempt identifier",
+      "example": "ad872bf9-cb65-4d6a-9b07-1d27f8d013ba"
+    },
+    {
+      "name": "key_patterns",
+      "type": "json",
+      "required": true,
+      "description": "Snapshot narrative patterns for learner profile",
+      "structure": {
+        "strength": "Core strength pattern",
+        "enjoyment": "Preferred activities",
+        "workStyle": "Typical work style",
+        "motivation": "Primary motivation drivers"
+      },
+      "example": {
+        "strength": "Strong interpersonal skills and creativity",
+        "enjoyment": "Creative expression and collaboration",
+        "workStyle": "Flexible and innovative",
+        "motivation": "Desire for meaningful work and recognition"
+      }
+    },
+    {
+      "name": "aptitude_strengths",
+      "type": "json",
+      "required": true,
+      "description": "Top aptitude strengths and percentiles",
+      "structure": {
+        "name": "Strength name",
+        "percentile": "Percentile score"
+      },
+      "example": [
+        {
+          "name": "Logical reasoning",
+          "percentile": "100"
+        }
+      ]
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2026-03-23T06:47:13.8812+00:00"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2026-03-23T06:47:13.8812+00:00"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_profile_snapshot_learner_id",
+      "columns": ["learner_id"],
+      "description": "Get profile snapshot by learner"
+    },
+    {
+      "name": "idx_profile_snapshot_assessment_id",
+      "columns": ["assessment_id"],
+      "description": "Get profile snapshot by assessment"
+    },
+    {
+      "name": "idx_profile_snapshot_learner_assessment",
+      "columns": ["learner_id", "assessment_id"],
+      "type": "composite",
+      "unique": true,
+      "description": "One profile snapshot per learner per assessment"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id",
+      "description": "Each profile snapshot belongs to one learner"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "ps-001",
+      "learner_id": "learner-001",
+      "assessment_id": "454cae3d-bf98-40cf-9b13-db27d343f5e9",
+      "attempt_id": "ad872bf9-cb65-4d6a-9b07-1d27f8d013ba",
+      "key_patterns": {
+        "strength": "Strong interpersonal skills and creativity",
+        "enjoyment": "Creative expression and collaboration",
+        "workStyle": "Flexible and innovative",
+        "motivation": "Desire for meaningful work and recognition"
+      },
+      "aptitude_strengths": [
+        {
+          "name": "Logical reasoning",
+          "percentile": "100"
+        }
+      ],
+      "created_at": "2026-03-23T06:47:13.8812+00:00",
+      "updated_at": "2026-03-23T06:47:13.8812+00:00"
+    }
+  ]
+}

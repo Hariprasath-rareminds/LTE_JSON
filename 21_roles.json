@@ -1,0 +1,103 @@
+{
+  "table_name": "roles",
+  "description": "Master list of industry roles. Each role maps to capabilities learners in that role are expected to develop.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique role identifier",
+      "example": "role-001"
+    },
+    {
+      "name": "name",
+      "type": "varchar",
+      "required": true,
+      "unique": true,
+      "description": "Role name",
+      "example": "Backend Engineer"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "What this role does in industry",
+      "example": "Designs and builds server-side services, APIs, and data layers."
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether this role is active in the system",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2026-03-31T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2026-03-31T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_roles_name",
+      "columns": ["name"],
+      "unique": true,
+      "description": "Enforce unique role names"
+    },
+    {
+      "name": "idx_roles_active",
+      "columns": ["is_active"],
+      "description": "Filter active roles"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "one_to_many",
+      "related_table": "capabilities_master",
+      "local_key": "id",
+      "foreign_key": "role_id",
+      "description": "One role has many capabilities"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "role-001",
+      "name": "Backend Engineer",
+      "description": "Designs and builds server-side services, APIs, and data layers.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    },
+    {
+      "id": "role-002",
+      "name": "Full-Stack Engineer",
+      "description": "Builds both frontend and backend components of an application.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    },
+    {
+      "id": "role-003",
+      "name": "DevOps Engineer",
+      "description": "Manages deployment pipelines, infrastructure, and release engineering.",
+      "is_active": true,
+      "created_at": "2026-03-31T00:00:00Z",
+      "updated_at": "2026-03-31T00:00:00Z"
+    }
+  ]
+}

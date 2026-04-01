@@ -1,0 +1,172 @@
+﻿{
+  "table_name": "learning_paths",
+  "description": "Personalized learning path for each learner and their chosen track. Course list, module progress, and 6E stage tracking have been moved to dedicated tables.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique learning path identifier",
+      "example": "path-001"
+    },
+    {
+      "name": "learning_track_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learning_tracks.id",
+      "description": "Learning track this path was generated from",
+      "example": "track-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner this path belongs to",
+      "example": "learner-001"
+    },
+    {
+      "name": "status",
+      "type": "uuid",
+      "required": true,
+      "enum": ["not_started", "in_progress", "completed", "paused"],
+      "description": "Overall path status",
+      "example": "in_progress"
+    },
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether this is the learner's current active path",
+      "example": true
+    },
+    {
+      "name": "version_no",
+      "type": "integer",
+      "required": true,
+      "default": 1,
+      "description": "Version number of this learning path snapshot",
+      "example": 1
+    },
+    {
+      "name": "is_latest",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Marks whether this is the latest version for the learner",
+      "example": true
+    },
+    {
+      "name": "started_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "When the learner started this path",
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "completed_at",
+      "type": "timestamp",
+      "required": false,
+      "nullable": true,
+      "description": "When the learner completed this path",
+      "example": null
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "When the learning path was created",
+      "example": "2024-01-15T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-15T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_learning_paths_learner_track",
+      "columns": ["learner_id", "learning_track_id"],
+      "type": "composite",
+      "unique": true,
+      "description": "One path per learner per track (prevent duplicates)"
+    },
+    {
+      "name": "idx_learning_paths_learner_is_active",
+      "columns": ["learner_id", "is_active"],
+      "type": "composite",
+      "description": "Get active learning path for a learner (usually 1)"
+    },
+    {
+      "name": "idx_learning_paths_status",
+      "columns": ["status"],
+      "description": "Filter paths by progress status (in_progress, completed, paused)"
+    },
+    {
+      "name": "idx_learning_paths_learner_status",
+      "columns": ["learner_id", "status"],
+      "type": "composite",
+      "description": "Get learner's completed or in-progress paths"
+    },
+    {
+      "name": "idx_learning_paths_learner_latest",
+      "columns": ["learner_id", "is_latest"],
+      "type": "composite",
+      "description": "Get latest learning path version for a learner"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learning_tracks",
+      "local_key": "learning_track_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "learning_path_courses",
+      "local_key": "id",
+      "foreign_key": "learning_path_id",
+      "description": "All courses assigned in this path"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "learner_module_progress",
+      "local_key": "id",
+      "foreign_key": "learning_path_id",
+      "description": "All module-level progress records under this path"
+    }
+  ],
+
+  "learning_paths": [
+    {
+      "id": "path-001",
+      "learning_track_id": "track-001",
+      "learner_id": "learner-001",
+      "status": "in_progress",
+      "is_active": true,
+      "version_no": 1,
+      "is_latest": true,
+      "started_at": "2024-01-15T00:00:00Z",
+      "completed_at": null,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
+    }
+  ]
+}

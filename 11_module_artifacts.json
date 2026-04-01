@@ -1,0 +1,205 @@
+﻿{
+  "table_name": "module_artifacts",
+  "description": "Defines practice and final artifacts inside each module, including scoring rules and resubmission rules. Question-level content lives in artifact_questions.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique artifact identifier",
+      "example": "ma-001"
+    },
+    {
+      "name": "module_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "modules.id",
+      "description": "Module this artifact belongs to",
+      "example": "mod-001"
+    },
+    {
+      "name": "artifact_type",
+      "type": "varchar",
+      "required": true,
+      "enum": ["practice", "final"],
+      "description": "Whether this artifact is practice-only or final submission",
+      "example": "final"
+    },
+    {
+      "name": "total_score",
+      "type": "integer",
+      "required": true,
+      "description": "Total possible score. For practice artifacts use 0 when score is not applicable.",
+      "example": 100
+    },
+    {
+      "name": "passing_score",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "description": "Minimum score to pass. Typically set only for final artifacts.",
+      "example": 70
+    },
+    {
+      "name": "allow_resubmission",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "If false, only one attempt is allowed regardless of outcome. When false, max_attempts and require_review_unlock are ignored.",
+      "example": true
+    },
+    {
+      "name": "require_review_unlock",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "If true, evaluation flow must reach a terminal state (returned_for_rework, approved, rejected) before the next attempt is unlocked. Ignored if allow_resubmission is false.",
+      "example": true
+    },
+    {
+      "name": "max_attempts",
+      "type": "integer",
+      "required": false,
+      "nullable": true,
+      "description": "Maximum number of attempts allowed. Null means unlimited. Ignored if allow_resubmission is false.",
+      "example": 3
+    },
+
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether artifact is active and visible",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_resubmission_rules",
+      "type": "check",
+      "rule": "allow_resubmission = true OR (max_attempts IS NULL OR max_attempts = 1)",
+      "description": "If allow_resubmission is false, max_attempts must be null or 1."
+    },
+    {
+      "name": "chk_max_attempts_positive",
+      "type": "check",
+      "rule": "max_attempts IS NULL OR max_attempts >= 1",
+      "description": "max_attempts must be at least 1 if set."
+    },
+    {
+      "name": "chk_passing_score_range",
+      "type": "check",
+      "rule": "passing_score IS NULL OR (passing_score >= 0 AND passing_score <= total_score)",
+      "description": "passing_score cannot exceed total_score."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_module_artifacts_module_id",
+      "columns": ["module_id"],
+      "description": "Get all artifacts configured for a module"
+    },
+    {
+      "name": "idx_module_artifacts_module_type",
+      "columns": ["module_id", "artifact_type"],
+      "type": "composite",
+      "description": "Resolve practice/final artifact per module"
+    },
+    {
+      "name": "idx_module_artifacts_active",
+      "columns": ["is_active"],
+      "description": "Filter only active artifacts"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "modules",
+      "local_key": "module_id",
+      "foreign_key": "id",
+      "description": "Each artifact belongs to one module"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "artifact_questions",
+      "local_key": "id",
+      "foreign_key": "artifact_id",
+      "description": "One artifact has one or more questions each with their own title, description, and instructions"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "artifact_templates",
+      "local_key": "id",
+      "foreign_key": "artifact_id",
+      "description": "One artifact can provide one or more downloadable templates"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "artifact_submissions",
+      "local_key": "id",
+      "foreign_key": "artifact_id",
+      "description": "One artifact can have many submission attempts across learners"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "ma-001",
+      "module_id": "mod-001",
+      "artifact_type": "practice",
+      "total_score": 0,
+      "passing_score": null,
+      "allow_resubmission": false,
+      "require_review_unlock": false,
+      "max_attempts": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "ma-002",
+      "module_id": "mod-001",
+      "artifact_type": "final",
+      "total_score": 100,
+      "passing_score": 70,
+      "allow_resubmission": true,
+      "require_review_unlock": true,
+      "max_attempts": 3,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "ma-003",
+      "module_id": "mod-002",
+      "artifact_type": "final",
+      "total_score": 100,
+      "passing_score": 75,
+      "allow_resubmission": true,
+      "require_review_unlock": false,
+      "max_attempts": null,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

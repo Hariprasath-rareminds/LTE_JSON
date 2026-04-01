@@ -1,0 +1,152 @@
+{
+  "table_name": "learner_profiles",
+  "description": "Main learner/student information table. Capability scores and skill recommendations live in learner_capabilities table.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique learner identifier",
+      "example": "learner-001"
+    },
+    {
+      "name": "student_id",
+      "type": "uuid",
+      "required": true,
+      "unique": true,
+      "foreign_key": "students.id",
+      "description": "Student ID from students table",
+      "example": "3531e63e-589e-46e7-9248-4a769e84b00d"
+    },
+    {
+      "name": "grade_level",
+      "type": "varchar",
+      "required": true,
+      "enum": ["middle_school", "high_school", "higher_secondary", "ug", "pg", "professional"],
+      "description": "Grade level (ug=undergraduate, pg=postgraduate, professional=working professional)",
+      "example": "ug"
+    },
+    {
+      "name": "skill_level",
+      "type": "varchar",
+      "required": true,
+      "enum": ["beginner", "emerging", "intermediate", "advanced", "expert"],
+      "description": "Overall skill level derived from assessment",
+      "example": "beginner"
+    },
+    {
+      "name": "target_role",
+      "type": "varchar",
+      "required": true,
+      "description": "Career role learner is targeting",
+      "example": "Backend Engineer"
+    },
+    {
+      "name": "domain_id",
+      "type": "uuid",
+      "required": true,
+       "foreign_key": "domains.id",
+      "description": "Domain of expertise",
+      "example": "Backend Engineering"
+    },
+   
+    {
+      "name": "is_active",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "Whether learner account is active or not",
+      "example": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_learner_student_id",
+      "columns": ["student_id"],
+      "type": "unique",
+      "description": "Fast lookup by UUID (login, enrollment)"
+    },
+    {
+      "name": "idx_learner_target_role",
+      "columns": ["target_role"],
+      "description": "Segment learners by career goal (Backend Engineer, Data Scientist)"
+    },
+    {
+      "name": "idx_learner_skill_level",
+      "columns": ["skill_level"],
+      "description": "Group/filter by skill tier (beginner, intermediate, advanced)"
+    },
+    {
+      "name": "idx_learner_grade_level",
+      "columns": ["grade_level"],
+      "description": "Filter by academic level (ug, pg, professional)"
+    },
+    {
+      "name": "idx_learner_industry",
+      "columns": ["industry"],
+      "description": "Segment by industry (IT & AI, etc)"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "one_to_many",
+      "related_table": "learning_tracks",
+      "local_key": "id",
+      "foreign_key": "learner_id",
+      "description": "A learner profile can have multiple recommended learning tracks"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "learner_capabilities",
+      "local_key": "id",
+      "foreign_key": "learner_id",
+      "description": "All capability scores and recommendations for this learner live in learner_capabilities"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "learner-001",
+      "student_id": "3531e63e-589e-46e7-9248-4a769e84b00d",
+      "grade_level": "ug",
+      "skill_level": "beginner",
+      "target_role": "Backend Engineer",
+      "domain": "Backend Engineering",
+      "industry": "Information Technology & AI",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "learner-002",
+      "student_id": "4631f74f-690f-57f8-0259-5b870e95f1f0",
+      "grade_level": "pg",
+      "skill_level": "intermediate",
+      "target_role": "Data Scientist",
+      "domain": "Data Science",
+      "industry": "Information Technology & AI",
+      "is_active": true,
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-02-15T00:00:00Z"
+    }
+  ]
+}

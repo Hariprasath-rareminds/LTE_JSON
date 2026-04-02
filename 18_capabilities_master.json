@@ -33,13 +33,13 @@
       "example": "Backend Service Development"
     },
     {
-  "name": "role_id",
-  "type": "uuid",
-  "required": true,
-  "foreign_key": "roles.id",
-  "description": "Role this capability belongs to. Every capability is tied to one industry role.",
-  "example": "role-001"
-},
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id",
+      "description": "Role this capability belongs to. Every capability is tied to one industry role.",
+      "example": "role-001"
+    },
     {
       "name": "domain_id",
       "type": "uuid",
@@ -169,13 +169,14 @@
       "local_key": "id",
       "foreign_key": "capability_id",
       "description": "One master capability maps to many learner capability records"
-    },{
-  "type": "many_to_one",
-  "related_table": "roles",
-  "local_key": "role_id",
-  "foreign_key": "id",
-  "description": "Each capability belongs to one role"
-}
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each capability belongs to one role"
+    }
   ],
 
   "note": "sample_records below are a representative subset. Full seed data contains ~180 unique capabilities across 240 source rows from Role_L1_Gap_Model.json.",

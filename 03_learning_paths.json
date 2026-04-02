@@ -29,8 +29,16 @@
       "example": "learner-001"
     },
     {
-      "name": "status",
+      "name": "role_id",
       "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id",
+      "description": "Role this learning path is targeting. Every path is tied to one industry role.",
+      "example": "role-001"
+    },
+    {
+      "name": "status",
+      "type": "varchar",
       "required": true,
       "enum": ["not_started", "in_progress", "completed", "paused"],
       "description": "Overall path status",
@@ -122,6 +130,11 @@
       "columns": ["learner_id", "is_latest"],
       "type": "composite",
       "description": "Get latest learning path version for a learner"
+    },
+    {
+      "name": "idx_learning_paths_role_id",
+      "columns": ["role_id"],
+      "description": "Filter all learning paths targeting a specific role"
     }
   ],
 
@@ -137,6 +150,13 @@
       "related_table": "learning_tracks",
       "local_key": "learning_track_id",
       "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each learning path targets one industry role"
     },
     {
       "type": "one_to_many",
@@ -159,6 +179,7 @@
       "id": "path-001",
       "learning_track_id": "track-001",
       "learner_id": "learner-001",
+      "role_id": "role-001",
       "status": "in_progress",
       "is_active": true,
       "version_no": 1,

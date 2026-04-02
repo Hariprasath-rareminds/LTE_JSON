@@ -37,6 +37,14 @@
       "example": "role-001"
     },
     {
+      "name": "level",
+      "type": "integer",
+      "required": true,
+      "enum": [1, 2, 3, 4, 5],
+      "description": "Difficulty or progression level of the learning path, ranging from 1 (beginner) to 5 (advanced)",
+      "example": 1
+    },
+    {
       "name": "status",
       "type": "varchar",
       "required": true,
@@ -135,6 +143,11 @@
       "name": "idx_learning_paths_role_id",
       "columns": ["role_id"],
       "description": "Filter all learning paths targeting a specific role"
+    },
+    {
+      "name": "idx_learning_paths_level",
+      "columns": ["level"],
+      "description": "Filter learning paths by difficulty level (1–5)"
     }
   ],
 
@@ -180,6 +193,7 @@
       "learning_track_id": "track-001",
       "learner_id": "learner-001",
       "role_id": "role-001",
+      "level": 1,
       "status": "in_progress",
       "is_active": true,
       "version_no": 1,

@@ -57,6 +57,15 @@
       "example": "2026-03-30T00:00:00Z"
     }
   ],
+  "relationships": [
+  {
+    "type": "one_to_many",
+    "related_table": "roles",
+    "local_key": "id",
+    "foreign_key": "domain_id",
+    "description": "One domain has many roles"
+  }
+],
 
   "indexes": [
     {

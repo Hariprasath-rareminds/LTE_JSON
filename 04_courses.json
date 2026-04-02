@@ -44,10 +44,11 @@
     },
     {
       "name": "job_pathway_role",
-      "type": "varchar",
-      "required": true,
-      "description": "Primary job role this course supports",
-      "example": "Backend Engineer"
+      "type": "uuid",
+       "required": true,
+       "foreign_key": "roles.name",
+       "description": "Primary job role this course supports",
+       "example": "Backend Engineer"
     },
     {
       "name": "domain_id",

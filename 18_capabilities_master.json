@@ -45,7 +45,8 @@
       "type": "uuid",
       "required": true,
       "foreign_key": "domains.id",
-      "description": "FK to domains table. Derived from capability_library mapping."
+      "description": "Denormalized FK to domains. Derived from roles.domain_id for fast filtering without joins. Must stay consistent with role's domain.",
+      "example": "dom-001"
     },
     {
       "name": "industry_outcome",
@@ -139,14 +140,25 @@
 
   "indexes": [
     {
-      "name": "idx_capabilities_master_capability_id",
-      "columns": ["capability_id"],
-      "description": "Group all named capabilities under a given capability_id"
+      "name": "idx_capabilities_master_role_id",
+      "columns": ["role_id"],
+      "description": "Get all capabilities under a given role"
     },
     {
       "name": "idx_capabilities_master_domain_id",
       "columns": ["domain_id"],
-      "description": "Find all capabilities under a domain"
+      "description": "Get all capabilities under a given domain (denormalized fast lookup)"
+    },
+    {
+      "name": "idx_capabilities_master_role_domain",
+      "columns": ["role_id", "domain_id"],
+      "type": "composite",
+      "description": "Filter capabilities by role and domain together"
+    },
+    {
+      "name": "idx_capabilities_master_capability_id",
+      "columns": ["capability_id"],
+      "description": "Group all named capabilities under a given capability_id"
     },
     {
       "name": "idx_capabilities_master_gap_review_status",
@@ -158,10 +170,17 @@
   "relationships": [
     {
       "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each capability belongs to one role"
+    },
+    {
+      "type": "many_to_one",
       "related_table": "domains",
       "local_key": "domain_id",
       "foreign_key": "id",
-      "description": "Each capability belongs to one domain"
+      "description": "Each capability belongs to one domain (denormalized from role for fast filtering)"
     },
     {
       "type": "one_to_many",
@@ -169,17 +188,10 @@
       "local_key": "id",
       "foreign_key": "capability_id",
       "description": "One master capability maps to many learner capability records"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "roles",
-      "local_key": "role_id",
-      "foreign_key": "id",
-      "description": "Each capability belongs to one role"
     }
   ],
 
-  "note": "sample_records below are a representative subset. Full seed data contains ~180 unique capabilities across 240 source rows from Role_L1_Gap_Model.json.",
+  "note": "domain_id is intentionally denormalized from roles.domain_id to avoid joins when filtering capabilities by domain. It must always stay consistent with the role's domain. Sample records below are a representative subset. Full seed data contains ~180 unique capabilities across 240 source rows from Role_L1_Gap_Model.json.",
 
   "sample_records": [
     {
@@ -187,6 +199,7 @@
       "capability_id": "SE-CAP-01",
       "capability_library": "Software Development",
       "capability": "Backend Service Development",
+      "role_id": "role-001",
       "domain_id": "dom-001",
       "industry_outcome": "Build maintainable backend services that implement business logic correctly and follow team coding standards.",
       "academic_coverage": "Programming, Object Oriented Programming, Data Structures",
@@ -205,6 +218,7 @@
       "capability_id": "SE-CAP-01",
       "capability_library": "Software Development",
       "capability": "Full-Stack Application Coding",
+      "role_id": "role-002",
       "domain_id": "dom-001",
       "industry_outcome": "Build frontend and backend code components that work together to deliver usable application features.",
       "academic_coverage": "Programming, basic web development concepts",
@@ -223,6 +237,7 @@
       "capability_id": "SE-CAP-02",
       "capability_library": "API Engineering",
       "capability": "API Design & Implementation",
+      "role_id": "role-001",
       "domain_id": "dom-002",
       "industry_outcome": "Develop REST APIs that expose application functionality and follow consistent request/response patterns.",
       "academic_coverage": "Programming, Computer Networks",
@@ -241,6 +256,7 @@
       "capability_id": "SE-CAP-08",
       "capability_library": "Observability Basics",
       "capability": "Debugging & Observability",
+      "role_id": "role-001",
       "domain_id": "dom-008",
       "industry_outcome": "Diagnose and resolve runtime issues using logs, debugging tools, and systematic troubleshooting.",
       "academic_coverage": "Programming, Operating Systems",
@@ -259,6 +275,7 @@
       "capability_id": "SE-CAP-14",
       "capability_library": "CI/CD & Release Engineering",
       "capability": "Application Deployment Basics",
+      "role_id": "role-003",
       "domain_id": "dom-012",
       "industry_outcome": "Deploy applications to runtime environments using standard deployment processes.",
       "academic_coverage": "Operating Systems, basic networking",

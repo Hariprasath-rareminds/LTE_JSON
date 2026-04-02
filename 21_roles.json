@@ -12,6 +12,14 @@
       "description": "Unique role identifier",
       "example": "role-001"
     },
+     {
+      "name": "domain_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "domains.id",
+      "description": "Domain this role belongs to",
+      "example": "dom-001"
+    },
     {
       "name": "name",
       "type": "varchar",
@@ -77,6 +85,7 @@
   "sample_records": [
     {
       "id": "role-001",
+      "domain_id": "dom-001",
       "name": "Backend Engineer",
       "description": "Designs and builds server-side services, APIs, and data layers.",
       "is_active": true,
@@ -85,6 +94,7 @@
     },
     {
       "id": "role-002",
+      "domain_id": "dom-001",
       "name": "Full-Stack Engineer",
       "description": "Builds both frontend and backend components of an application.",
       "is_active": true,
@@ -93,6 +103,7 @@
     },
     {
       "id": "role-003",
+      "domain_id": "dom-001",
       "name": "DevOps Engineer",
       "description": "Manages deployment pipelines, infrastructure, and release engineering.",
       "is_active": true,

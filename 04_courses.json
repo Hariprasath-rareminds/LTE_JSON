@@ -46,7 +46,7 @@
       "name": "job_pathway_role",
       "type": "uuid",
        "required": true,
-       "foreign_key": "roles.name",
+       "foreign_key": "roles.id",
        "description": "Primary job role this course supports",
        "example": "Backend Engineer"
     },
@@ -193,7 +193,7 @@
       "title": "Debugging & Observability for Backend Systems",
       "description": "Learn how to debug and monitor backend systems for better performance and stability.",
       "thumbnail_url": "https://example.com/course-thumbnail.jpg",
-      "job_pathway_role": "Backend Engineer",
+      "job_pathway_role": "role-001",
       "duration": "45 hours",
       "difficulty_level": "beginner",
       "certification_value": "System debugging",

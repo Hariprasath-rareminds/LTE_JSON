@@ -204,7 +204,7 @@
       "2. Find the course for this artifact: SELECT course_id FROM modules JOIN module_artifacts ON modules.id = module_artifacts.module_id WHERE module_artifacts.id = :artifact_id",
       "3. Find the course's capability transition: SELECT capability_id, to_level FROM courses WHERE course_id = :course_id",
       "4. Update learner capability level: UPDATE learner_capabilities SET current_level = :to_level, level_label = :to_level_label, updated_at = NOW() WHERE learner_id = :learner_id AND capability_id = :capability_id",
-      "5. Update skill gap: UPDATE skill_gap_capabilities SET current_level = :to_level, gap = required_level - :to_level, has_gap = (required_level > :to_level) WHERE learner_id = :learner_id AND capability_id = :capability_id",
+      "5. Update skill gap: UPDATE learner_capabilities SET current_level = :to_level, gap = required_level - :to_level, has_gap = (required_level > :to_level) WHERE learner_id = :learner_id AND capability_id = :capability_id",
       "6. Update module progress: UPDATE learner_module_progress SET artifact_approval_status = 'approved', module_status = 'completed' WHERE id = :learner_module_progress_id",
       "7. Unlock next module: UPDATE learner_module_progress SET is_locked = false WHERE learner_id = :learner_id AND course_id = :course_id AND module_id = (next module_no) AND is_locked = true",
       "8. If all modules in course are completed: UPDATE learning_path_courses SET status='completed', completed_at=NOW(). Then unlock next course in the capability gap sequence by setting is_locked=false on the next learning_path_courses row.",

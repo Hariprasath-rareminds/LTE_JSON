@@ -1,6 +1,6 @@
 {
   "table_name": "learner_capabilities",
-  "description": "Per-learner capability scores and gaps, scoped per track and role. One row per learner + track + role + capability. This is the core of the capability transformation engine — every recommendation decision traces back here.",
+  "description": "Per-learner capability scores, gap analysis, and role readiness data. One row per learner + assessment + learning path + role + capability. This is the single source of truth for the gap engine — current level, required level, gap, and course recommendation priority all live here. skill_gap_capabilities has been merged into this table.",
   "primary_key": "id",
 
   "fields": [
@@ -29,19 +29,19 @@
       "example": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f"
     },
     {
-      "name": "learning_track_id",
+      "name": "learning_path_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "learning_tracks.id",
-      "description": "The learning track this capability record is scoped to. A learner has up to 3 tracks, each with multiple roles.",
-      "example": "track-001"
+      "foreign_key": "learning_paths.id",
+      "description": "The learning path this capability record is scoped to. Replaces learning_track_id — path is the actionable unit a learner works through.",
+      "example": "path-001"
     },
     {
       "name": "role_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "roles.id",
-      "description": "The role within the track this capability is being assessed against. Each track has 3–4 roles.",
+      "description": "The role this capability is being assessed against. Each learning path targets one role.",
       "example": "role-001"
     },
     {
@@ -68,19 +68,33 @@
       "example": 1
     },
     {
-      "name": "target_level",
+      "name": "required_level",
       "type": "integer",
-      "required": false,
-      "nullable": true,
+      "required": true,
       "enum": [0, 1, 2, 3, 4],
-      "description": "Required capability level for the target role on the L0–L4 scale. Sourced from role_capability_map.required_level. Null if not part of a priority recommendation.",
+      "description": "Minimum capability level required by the role. Sourced from role_capability_map.required_level at the time the learning path was generated.",
       "example": 3
+    },
+    {
+      "name": "gap",
+      "type": "integer",
+      "required": true,
+      "description": "Computed gap = required_level - current_level. Positive means learner needs improvement. Zero or negative means no gap.",
+      "example": 2
+    },
+    {
+      "name": "has_gap",
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "True if gap > 0. Used by the recommendation engine to find which capabilities need courses assigned.",
+      "example": true
     },
     {
       "name": "gap_score",
       "type": "integer",
       "required": true,
-      "description": "Gap between current score and target score (0–100). Used for path prioritization.",
+      "description": "Gap expressed as a 0–100 score for path prioritization and ranking. Derived from current_score vs target score.",
       "example": 60
     },
     {
@@ -89,7 +103,7 @@
       "required": false,
       "nullable": true,
       "enum": ["A", "B"],
-      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, null = no gap or assessment-only.",
+      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, null = no gap or not yet prioritized.",
       "example": "A"
     },
     {
@@ -124,37 +138,70 @@
     }
   ],
 
+  "constraints": [
+    {
+      "name": "chk_current_level_range",
+      "type": "check",
+      "rule": "current_level >= 0 AND current_level <= 4",
+      "description": "current_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_required_level_range",
+      "type": "check",
+      "rule": "required_level >= 0 AND required_level <= 4",
+      "description": "required_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_gap_computed",
+      "type": "check",
+      "rule": "gap = required_level - current_level",
+      "description": "gap must always equal required_level - current_level"
+    },
+    {
+      "name": "chk_has_gap_consistent",
+      "type": "check",
+      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
+      "description": "has_gap must be true when gap > 0 and false otherwise"
+    }
+  ],
+
   "indexes": [
     {
-      "name": "idx_learner_capabilities_learner_assessment",
-      "columns": ["learner_id", "assessment_id"],
+      "name": "idx_learner_capabilities_unique",
+      "columns": ["learner_id", "assessment_id", "learning_path_id", "role_id", "capability_id"],
       "type": "composite",
-      "description": "Fetch all capability scores for a learner from a specific assessment"
+      "unique": true,
+      "description": "One capability record per learner per assessment per path per role — prevents duplicates"
     },
     {
-      "name": "idx_learner_capabilities_learner_track_role",
-      "columns": ["learner_id", "learning_track_id", "role_id"],
+      "name": "idx_learner_capabilities_learner_path_role",
+      "columns": ["learner_id", "learning_path_id", "role_id"],
       "type": "composite",
-      "description": "Fetch all capabilities for a learner scoped to a specific track and role"
+      "description": "Fetch all capabilities for a learner scoped to a specific path and role"
     },
     {
-      "name": "idx_learner_capabilities_role_capability",
-      "columns": ["role_id", "capability_id"],
+      "name": "idx_learner_capabilities_has_gap",
+      "columns": ["learner_id", "has_gap"],
       "type": "composite",
-      "description": "Look up a learner's level for a specific capability within a role"
+      "description": "Fetch all capabilities where learner has a gap — primary input to course recommendation engine"
     },
     {
       "name": "idx_learner_capabilities_priority_band",
       "columns": ["learner_id", "priority_band"],
       "type": "composite",
-      "description": "Fetch all priority A or B capabilities for a learner for course recommendation"
+      "description": "Fetch all priority A or B capabilities for a learner"
     },
     {
-      "name": "idx_learner_capabilities_unique",
-      "columns": ["learner_id", "assessment_id", "learning_track_id", "role_id", "capability_id"],
+      "name": "idx_learner_capabilities_role_capability",
+      "columns": ["role_id", "capability_id"],
       "type": "composite",
-      "unique": true,
-      "description": "One capability score per learner per assessment per track per role — prevents duplicate rows"
+      "description": "Look up required level for a capability within a role"
+    },
+    {
+      "name": "idx_learner_capabilities_learner_assessment",
+      "columns": ["learner_id", "assessment_id"],
+      "type": "composite",
+      "description": "Fetch all capability scores generated from a specific assessment"
     }
   ],
 
@@ -175,17 +222,17 @@
     },
     {
       "type": "many_to_one",
-      "related_table": "learning_tracks",
-      "local_key": "learning_track_id",
+      "related_table": "learning_paths",
+      "local_key": "learning_path_id",
       "foreign_key": "id",
-      "description": "Each capability record is scoped to one learning track"
+      "description": "Each capability record is scoped to one learning path"
     },
     {
       "type": "many_to_one",
       "related_table": "roles",
       "local_key": "role_id",
       "foreign_key": "id",
-      "description": "Each capability record is assessed against one role within the track"
+      "description": "Each capability record is assessed against one role"
     },
     {
       "type": "many_to_one",
@@ -193,6 +240,13 @@
       "local_key": "capability_id",
       "foreign_key": "id",
       "description": "Each record references a master capability definition"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "role_capability_map",
+      "local_key": ["role_id", "capability_id"],
+      "foreign_key": ["role_id", "capability_id"],
+      "description": "required_level is sourced from role_capability_map at path generation time"
     }
   ],
 
@@ -201,12 +255,14 @@
       "id": "lc-001",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-001",
+      "learning_path_id": "path-001",
       "role_id": "role-001",
       "capability_id": "cap-uuid-004",
       "current_score": 20,
       "current_level": 1,
-      "target_level": 3,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
       "gap_score": 60,
       "priority_band": "A",
       "why_needed": "Monitor production systems and diagnose runtime issues",
@@ -218,12 +274,14 @@
       "id": "lc-002",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-001",
+      "learning_path_id": "path-001",
       "role_id": "role-001",
       "capability_id": "cap-uuid-002",
       "current_score": 40,
       "current_level": 1,
-      "target_level": 3,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
       "gap_score": 40,
       "priority_band": "A",
       "why_needed": "Build scalable, efficient backend services",
@@ -235,16 +293,18 @@
       "id": "lc-003",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-001",
-      "role_id": "role-002",
+      "learning_path_id": "path-001",
+      "role_id": "role-001",
       "capability_id": "cap-uuid-001",
-      "current_score": 20,
-      "current_level": 0,
-      "target_level": 2,
-      "gap_score": 40,
-      "priority_band": "B",
-      "why_needed": "Architect robust backend solutions for production",
-      "how_to_build": "Study architecture patterns and scalability principles",
+      "current_score": 50,
+      "current_level": 2,
+      "required_level": 2,
+      "gap": 0,
+      "has_gap": false,
+      "gap_score": 0,
+      "priority_band": null,
+      "why_needed": null,
+      "how_to_build": null,
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
     },
@@ -252,12 +312,14 @@
       "id": "lc-004",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-002",
-      "role_id": "role-003",
+      "learning_path_id": "path-002",
+      "role_id": "role-002",
       "capability_id": "cap-uuid-011",
       "current_score": 40,
       "current_level": 1,
-      "target_level": 2,
+      "required_level": 2,
+      "gap": 1,
+      "has_gap": true,
       "gap_score": 20,
       "priority_band": "B",
       "why_needed": "Ensure code reliability and maintainability",
@@ -269,12 +331,14 @@
       "id": "lc-005",
       "learner_id": "learner-002",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-003",
+      "learning_path_id": "path-003",
       "role_id": "role-004",
       "capability_id": "cap-uuid-003",
       "current_score": 50,
       "current_level": 2,
-      "target_level": 4,
+      "required_level": 4,
+      "gap": 2,
+      "has_gap": true,
       "gap_score": 50,
       "priority_band": "A",
       "why_needed": "Build predictive models for business insights",
@@ -286,12 +350,14 @@
       "id": "lc-006",
       "learner_id": "learner-002",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-003",
+      "learning_path_id": "path-003",
       "role_id": "role-004",
       "capability_id": "cap-uuid-005",
       "current_score": 60,
       "current_level": 2,
-      "target_level": 4,
+      "required_level": 4,
+      "gap": 2,
+      "has_gap": true,
       "gap_score": 40,
       "priority_band": "A",
       "why_needed": "Build scalable data pipelines",
@@ -303,12 +369,14 @@
       "id": "lc-007",
       "learner_id": "learner-002",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_track_id": "track-004",
+      "learning_path_id": "path-004",
       "role_id": "role-005",
       "capability_id": "cap-uuid-009",
       "current_score": 50,
       "current_level": 2,
-      "target_level": 3,
+      "required_level": 3,
+      "gap": 1,
+      "has_gap": true,
       "gap_score": 50,
       "priority_band": "B",
       "why_needed": "Validate data-driven decisions with statistical rigor",

@@ -29,14 +29,6 @@
       "example": "SE-BE-OBS-01"
     },
     {
-      "name": "capability_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The capability this course addresses. Denormalized from courses.capability_id for fast gap-to-course tracing.",
-      "example": "cap-uuid-004"
-    },
-    {
       "name": "from_level",
       "type": "integer",
       "required": true,
@@ -67,23 +59,6 @@
       "example": 1
     },
     {
-      "name": "is_locked",
-      "type": "boolean",
-      "required": true,
-      "default": false,
-      "description": "Whether this course is currently locked for the learner. The first course per capability gap starts unlocked. Subsequent courses start locked and unlock when the previous course artifact is approved.",
-      "example": false
-    },
-    {
-      "name": "unlocks_after_submission_id",
-      "type": "uuid",
-      "required": false,
-      "nullable": true,
-      "foreign_key": "artifact_submissions.id",
-      "description": "The submission that must reach approved status to unlock this course. Null for the first course in each capability gap — those are immediately available.",
-      "example": "as-001"
-    },
-    {
       "name": "status",
       "type": "varchar",
       "required": true,
@@ -91,6 +66,16 @@
       "default": "not_started",
       "description": "Learner's current status for this course",
       "example": "in_progress"
+    },
+    {
+      "name": "badge",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["Qualified", "Pro"],
+      "default": null,
+      "description": "Badge earned by the learner upon completing this course. Null until the course is completed and a badge is awarded. 'Qualified' is awarded on standard completion; 'Pro' on exceptional performance.",
+      "example": "Qualified"
     },
     {
       "name": "completion_percentage",
@@ -132,16 +117,10 @@
 
   "constraints": [
     {
-      "name": "chk_first_course_not_locked",
+      "name": "chk_badge_only_on_completion",
       "type": "check",
-      "rule": "capability_sequence_no > 1 OR (capability_sequence_no = 1 AND unlocks_after_submission_id IS NULL)",
-      "description": "The first course in each capability sequence must have no unlock dependency."
-    },
-    {
-      "name": "chk_subsequent_course_has_unlock",
-      "type": "check",
-      "rule": "capability_sequence_no = 1 OR unlocks_after_submission_id IS NOT NULL",
-      "description": "Any course beyond the first in a capability sequence must reference the submission that unlocks it."
+      "rule": "badge IS NULL OR status = 'completed'",
+      "description": "A badge can only be awarded when the course status is completed."
     }
   ],
 
@@ -153,7 +132,7 @@
     },
     {
       "name": "uq_lpc_path_capability_level",
-      "columns": ["learning_path_id", "capability_id", "from_level"],
+      "columns": ["learning_path_id", "from_level"],
       "description": "One level transition per capability per path — prevents duplicate course assignment for the same gap step"
     }
   ],
@@ -168,24 +147,14 @@
       "columns": ["course_id"]
     },
     {
-      "name": "idx_lpc_capability_id",
-      "columns": ["capability_id"],
-      "description": "Find all courses assigned for a given capability in a path"
-    },
-    {
       "name": "idx_lpc_status",
       "columns": ["status"]
     },
     {
-      "name": "idx_lpc_is_locked",
-      "columns": ["learning_path_id", "is_locked"],
+      "name": "idx_lpc_badge",
+      "columns": ["learning_path_id", "badge"],
       "type": "composite",
-      "description": "Fast fetch of all unlocked courses in a path for dashboard display"
-    },
-    {
-      "name": "idx_lpc_unlocks_after",
-      "columns": ["unlocks_after_submission_id"],
-      "description": "On submission approval, find which course to unlock next"
+      "description": "Fast fetch of all badge-earned courses in a path for dashboard/profile display"
     }
   ],
 
@@ -201,64 +170,43 @@
       "related_table": "courses",
       "local_key": "course_id",
       "foreign_key": "course_id"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "capabilities_master",
-      "local_key": "capability_id",
-      "foreign_key": "id"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "artifact_submissions",
-      "local_key": "unlocks_after_submission_id",
-      "foreign_key": "id",
-      "description": "Nullable — only set for courses that require a prior approved submission to unlock"
     }
   ],
 
-  "notes": [
-    "When gap engine runs and finds capability_id=X with gap=2 (current_level=0, required_level=2), it inserts 2 rows: course L0→L1 (is_locked=false, capability_sequence_no=1) and course L1→L2 (is_locked=true, capability_sequence_no=2, unlocks_after_submission_id=NULL until L0→L1 course artifact is submitted).",
-    "On artifact approval for L0→L1 course: set is_locked=false on the L1→L2 row, set unlocks_after_submission_id to the approved submission id.",
-    "completion_percentage is recomputed from learner_module_progress rows for this course."
-  ],
+
 
   "sample_records": [
     {
       "id": "lpc-001",
       "learning_path_id": "path-001",
       "course_id": "SE-BE-OBS-01",
-      "capability_id": "cap-uuid-004",
       "from_level": 0,
       "to_level": 1,
       "sequence_no": 1,
       "capability_sequence_no": 1,
-      "is_locked": false,
-      "unlocks_after_submission_id": null,
-      "status": "in_progress",
-      "completion_percentage": 17,
+      "status": "completed",
+      "badge": "Qualified",
+      "completion_percentage": 100,
       "started_at": "2024-01-15T00:00:00Z",
-      "completed_at": null,
+      "completed_at": "2024-02-01T00:00:00Z",
       "created_at": "2024-01-15T00:00:00Z",
-      "updated_at": "2024-01-15T00:00:00Z"
+      "updated_at": "2024-02-01T00:00:00Z"
     },
     {
       "id": "lpc-002",
       "learning_path_id": "path-001",
       "course_id": "SE-BE-OBS-02",
-      "capability_id": "cap-uuid-004",
       "from_level": 1,
       "to_level": 2,
       "sequence_no": 2,
       "capability_sequence_no": 2,
-      "is_locked": true,
-      "unlocks_after_submission_id": null,
-      "status": "not_started",
-      "completion_percentage": 0,
-      "started_at": null,
+      "status": "in_progress",
+      "badge": null,
+      "completion_percentage": 17,
+      "started_at": "2024-02-02T00:00:00Z",
       "completed_at": null,
       "created_at": "2024-01-15T00:00:00Z",
-      "updated_at": "2024-01-15T00:00:00Z"
+      "updated_at": "2024-02-02T00:00:00Z"
     }
   ]
 }

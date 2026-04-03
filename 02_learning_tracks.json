@@ -44,7 +44,7 @@
       "example": "Backend Fundamentals"
     },
     {
-      "name": "matchScore",
+      "name": "match_score",
       "type": "integer",
       "required": true,
       "description": "Numeric match score for recommendation quality",
@@ -65,11 +65,25 @@
       "example": "3 months"
     },
     {
-      "name": "whyItFits",
+      "name": "why_it_fits",
       "type": "text",
       "required": true,
       "description": "Summary justification for why this track fits the learner",
       "example": "The student's logical abilities and systematic thinking make backend engineering an ideal career path for building scalable systems."
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
     }
   ],
 
@@ -86,7 +100,7 @@
     },
     {
       "name": "idx_learning_tracks_match_score",
-      "columns": ["matchScore"],
+      "columns": ["match_score"],
       "description": "Sort recommendations by quality score"
     },
     {
@@ -126,10 +140,12 @@
       "assessment_id": "assessment-001",
       "fit": "High",
       "track": "Backend Fundamentals",
-      "matchScore": 92,
+      "match_score": 92,
       "topics": "Node.js/Python, REST APIs, Database design, Authentication",
       "duration": "3 months",
-      "whyItFits": "The student's logical abilities and systematic thinking make backend engineering an ideal career path for building scalable systems."
+      "why_it_fits": "The student's logical abilities and systematic thinking make backend engineering an ideal career path for building scalable systems.",
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
     },
     {
       "id": "track-002",
@@ -137,10 +153,12 @@
       "assessment_id": "assessment-001",
       "fit": "High",
       "track": "Production Readiness",
-      "matchScore": 85,
+      "match_score": 85,
       "topics": "Logging, Monitoring, Error handling, Performance optimization",
       "duration": "2 months",
-      "whyItFits": "The student's problem-solving capability and emerging system design skills prepare them to handle production incidents and maintain reliable backend services."
+      "why_it_fits": "The student's problem-solving capability and emerging system design skills prepare them to handle production incidents and maintain reliable backend services.",
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
     },
     {
       "id": "track-003",
@@ -148,10 +166,12 @@
       "assessment_id": "assessment-001",
       "fit": "High",
       "track": "Machine Learning Engineering",
-      "matchScore": 89,
+      "match_score": 89,
       "topics": "Supervised/Unsupervised Learning, Model evaluation, Feature engineering, Experiment tracking",
       "duration": "3 months",
-      "whyItFits": "The student's current intermediate capability in analytics and clear interest in predictive systems make machine learning engineering a highly relevant next step."
+      "why_it_fits": "The student's current intermediate capability in analytics and clear interest in predictive systems make machine learning engineering a highly relevant next step.",
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-02-15T00:00:00Z"
     },
     {
       "id": "track-004",
@@ -159,10 +179,12 @@
       "assessment_id": "assessment-001",
       "fit": "High",
       "track": "Data Pipeline and Statistical Decisioning",
-      "matchScore": 84,
+      "match_score": 84,
       "topics": "ETL design, Python data workflows, Statistical inference, A/B testing",
       "duration": "2 months",
-      "whyItFits": "The student's blend of data engineering progress and statistical foundation makes this track ideal for building end-to-end, decision-focused data products."
+      "why_it_fits": "The student's blend of data engineering progress and statistical foundation makes this track ideal for building end-to-end, decision-focused data products.",
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-02-15T00:00:00Z"
     }
   ]
 }

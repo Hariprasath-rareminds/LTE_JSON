@@ -80,15 +80,7 @@
       "default": "normal",
       "description": "fast = learner skipped directly to submit. normal = went step-by-step through module content first.",
       "example": "normal"
-    },
-    {
-      "name": "submission_text",
-      "type": "text",
-      "required": false,
-      "nullable": true,
-      "description": "Inline learner response for text-based submissions",
-      "example": "Root cause likely originates from unbounded DB retries under high load."
-    },  
+    }, 
     {
       "name": "status",
       "type": "varchar",
@@ -139,12 +131,7 @@
   ],
 
   "constraints": [
-    {
-      "name": "chk_submission_content",
-      "type": "check",
-      "rule": "submission_url IS NOT NULL OR submission_text IS NOT NULL",
-      "description": "At least one of submission_url or submission_text must be provided."
-    },
+    
     {
       "name": "chk_previous_submission_first_attempt",
       "type": "check",
@@ -246,7 +233,6 @@
       "is_latest": false,
       "previous_submission_id": null,
       "submission_mode": "normal",
-      "submission_text": null,
       "status": "returned_for_rework",
       "evaluation_id": "aef-001",
       "submitted_at": "2024-01-21T10:15:00Z",
@@ -264,8 +250,7 @@
       "is_latest": true,
       "previous_submission_id": "as-001",
       "submission_mode": "fast",
-      "submission_text": "Updated report includes trace-to-service mapping and ranked hypotheses.",
-      "status": "approved",
+     "status": "approved",
       "evaluation_id": "aef-004",
       "submitted_at": "2024-01-22T09:20:00Z",
       "sealed_at": "2024-01-22T09:20:00Z",
@@ -282,7 +267,6 @@
       "is_latest": true,
       "previous_submission_id": null,
       "submission_mode": "normal",
-      "submission_text": "Drafted failure investigation map with impacted services and probable fault zones.",
       "status": "submitted",
       "evaluation_id": null,
       "submitted_at": "2024-01-20T18:40:00Z",

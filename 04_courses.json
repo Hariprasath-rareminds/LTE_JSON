@@ -1,6 +1,6 @@
-﻿{
+{
   "table_name": "courses",
-  "description": "Course catalog with recommendation and progression metadata used in learning paths",
+  "description": "Course catalog. Each course covers exactly one capability and moves the learner from one level to the next (from_level → to_level). This is the core rule: one capability + one level transition = one course. The recommendation engine uses capability_id + from_level to match a course to a learner gap.",
   "primary_key": "course_id",
 
   "fields": [
@@ -19,6 +19,30 @@
       "unique": true,
       "description": "Human-readable course code",
       "example": "BE-OBS-101"
+    },
+    {
+      "name": "capability_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "capabilities_master.id",
+      "description": "The single capability this course develops. Every course targets exactly one capability.",
+      "example": "cap-uuid-004"
+    },
+    {
+      "name": "from_level",
+      "type": "integer",
+      "required": true,
+      "enum": [0, 1, 2, 3],
+      "description": "The learner's capability level before taking this course. The recommendation engine matches this against skill_gap_capabilities.current_level.",
+      "example": 0
+    },
+    {
+      "name": "to_level",
+      "type": "integer",
+      "required": true,
+      "enum": [1, 2, 3, 4],
+      "description": "The capability level the learner reaches upon course completion and artifact approval. Always from_level + 1.",
+      "example": 1
     },
     {
       "name": "title",
@@ -45,16 +69,17 @@
     {
       "name": "job_pathway_role",
       "type": "uuid",
-       "required": true,
-       "foreign_key": "roles.id",
-       "description": "Primary job role this course supports",
-       "example": "Backend Engineer"
+      "required": true,
+      "foreign_key": "roles.id",
+      "description": "Primary job role this course supports",
+      "example": "role-001"
     },
     {
       "name": "domain_id",
       "type": "uuid",
       "required": true,
-      "description": "Reference to domains table for course classification",
+      "foreign_key": "domains.id",
+      "description": "Domain classification for this course",
       "example": "dom-001"
     },
     {
@@ -68,8 +93,8 @@
       "name": "difficulty_level",
       "type": "varchar",
       "required": true,
-     "enum": ["beginner", "foundation", "intermediate", "advanced", "expert"],
-      "description": "Course difficulty",
+      "enum": ["beginner", "foundation", "intermediate", "advanced", "expert"],
+      "description": "Human-readable difficulty label. Must be consistent with from_level.",
       "example": "beginner"
     },
     {
@@ -79,13 +104,6 @@
       "nullable": true,
       "description": "Primary certification outcome",
       "example": "System debugging"
-    },
-    {
-      "name": "common_course_problem_statement",
-      "type": "text",
-      "required": true,
-      "description": "Real-world problem statement framing the course",
-      "example": "Production backend service begins failing under load and engineers must identify root causes using logs, debugging tools and structured investigation."
     },
     {
       "name": "is_active",
@@ -100,7 +118,7 @@
       "type": "integer",
       "required": true,
       "default": 1,
-      "description": "Content version number for the course",
+      "description": "Content version number",
       "example": 1
     },
     {
@@ -108,22 +126,43 @@
       "type": "boolean",
       "required": true,
       "default": true,
-      "description": "Whether this course version is published for learner runtime",
+      "description": "Whether this course is published for learner access",
       "example": true
     },
     {
       "name": "created_at",
       "type": "timestamp",
       "required": true,
-      "description": "Record creation timestamp",
       "example": "2024-01-01T00:00:00Z"
     },
     {
       "name": "updated_at",
       "type": "timestamp",
       "required": true,
-      "description": "Last update timestamp",
       "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_level_transition",
+      "type": "check",
+      "rule": "to_level = from_level + 1",
+      "description": "A course always advances exactly one level. from_level 0 → to_level 1, from_level 1 → to_level 2, etc."
+    },
+    {
+      "name": "chk_from_level_max",
+      "type": "check",
+      "rule": "from_level <= 3",
+      "description": "from_level cannot be 4 — there is no level above L4 to advance to."
+    }
+  ],
+
+  "unique_constraints": [
+    {
+      "name": "uq_course_capability_level",
+      "columns": ["capability_id", "from_level"],
+      "description": "Exactly one course per capability per level transition. The recommendation engine relies on this to return exactly one course per gap."
     }
   ],
 
@@ -131,73 +170,108 @@
     {
       "name": "idx_courses_course_code",
       "columns": ["course_code"],
-      "type": "unique",
-      "description": "Fast course lookup by human-readable code"
+      "type": "unique"
+    },
+    {
+      "name": "idx_courses_capability_from_level",
+      "columns": ["capability_id", "from_level"],
+      "type": "composite",
+      "unique": true,
+      "description": "Primary lookup for the recommendation engine: given a capability gap, find the one course to recommend"
     },
     {
       "name": "idx_courses_role",
       "columns": ["job_pathway_role"],
-      "description": "Find all courses for a specific job role (Backend Engineer, Data Scientist)"
+      "description": "Find all courses for a specific role"
     },
     {
       "name": "idx_courses_domain_id",
-      "columns": ["domain_id"],
-      "description": "Find all courses for a specific domain"
+      "columns": ["domain_id"]
     },
     {
       "name": "idx_courses_difficulty_level",
-      "columns": ["difficulty_level"],
-      "description": "Filter courses by skill tier (beginner, foundation, intermediate, advanced, expert)"
+      "columns": ["difficulty_level"]
     },
     {
       "name": "idx_courses_is_active",
-      "columns": ["is_active"],
-      "description": "Show only active courses"
+      "columns": ["is_active"]
     },
     {
       "name": "idx_courses_is_published",
-      "columns": ["is_published"],
-      "description": "Show only published courses (hide drafts)"
-    },
-    {
-      "name": "idx_courses_role_difficulty",
-      "columns": ["job_pathway_role", "difficulty_level"],
-      "type": "composite",
-      "description": "Get beginner courses for specific role"
+      "columns": ["is_published"]
     }
   ],
 
   "relationships": [
     {
       "type": "many_to_one",
-      "related_table": "domains",
-      "local_key": "domain_id",
+      "related_table": "capabilities_master",
+      "local_key": "capability_id",
       "foreign_key": "id",
-      "description": "Each course belongs to one domain"
+      "description": "Each course targets exactly one capability"
     },
     {
-      "type": "many_to_many",
-      "related_table": "capabilities_master",
-      "junction_table": "course_capabilities",
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "job_pathway_role",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "domains",
+      "local_key": "domain_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "modules",
       "local_key": "course_id",
-      "foreign_key": "capability_id",
-      "description": "A course can cover multiple capabilities from capabilities_master via course_capabilities junction table"
+      "foreign_key": "course_id",
+      "description": "One course has multiple modules delivered via the 6E framework"
     }
   ],
 
-  "courses": [
+  "notes": [
+    "Recommendation query: SELECT course_id FROM courses WHERE capability_id = :cap AND from_level = :current_level AND is_active = true AND is_published = true LIMIT 1",
+    "If gap > 1 (e.g. current_level=0, required_level=3), the engine recommends 3 courses in sequence: L0→L1, then L1→L2, then L2→L3. Only the first unlocks immediately.",
+    "The unique constraint on (capability_id, from_level) guarantees the engine always returns exactly one course."
+  ],
+
+  "sample_records": [
     {
       "course_id": "SE-BE-OBS-01",
       "course_code": "BE-OBS-101",
-      "domain_id": "dom-008",
+      "capability_id": "cap-uuid-004",
+      "from_level": 0,
+      "to_level": 1,
       "title": "Debugging & Observability for Backend Systems",
       "description": "Learn how to debug and monitor backend systems for better performance and stability.",
       "thumbnail_url": "https://example.com/course-thumbnail.jpg",
       "job_pathway_role": "role-001",
+      "domain_id": "dom-008",
       "duration": "45 hours",
       "difficulty_level": "beginner",
       "certification_value": "System debugging",
-      "common_course_problem_statement": "Production backend service begins failing under load and engineers must identify root causes using logs, debugging tools and structured investigation.",
+      "is_active": true,
+      "version_no": 1,
+      "is_published": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "course_id": "SE-BE-OBS-02",
+      "course_code": "BE-OBS-201",
+      "capability_id": "cap-uuid-004",
+      "from_level": 1,
+      "to_level": 2,
+      "title": "Advanced Observability Patterns",
+      "description": "Build production-grade observability pipelines with distributed tracing and alert design.",
+      "thumbnail_url": null,
+      "job_pathway_role": "role-001",
+      "domain_id": "dom-008",
+      "duration": "40 hours",
+      "difficulty_level": "intermediate",
+      "certification_value": null,
       "is_active": true,
       "version_no": 1,
       "is_published": true,
@@ -206,4 +280,3 @@
     }
   ]
 }
-

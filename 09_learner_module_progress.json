@@ -1,6 +1,6 @@
 ﻿{
   "table_name": "learner_module_progress",
-  "description": "Module-level progress header per learner per module. Stores overall module status, completion, artifact submission, and activity timestamps, while 6E stage-level tracking is maintained in learner_6e_stage_progress. Replaces the old deeply nested learning_paths.courses progress structure. One row per learner per module.",
+  "description": "Module-level progress header per learner per module. Tracks overall module status, 6E stage completion, artifact submission state, and module lock state. One row per learner per module. Modules unlock sequentially — a module is locked until the previous module's final artifact is approved.",
   "primary_key": "id",
 
   "fields": [
@@ -50,25 +50,50 @@
       "required": true,
       "enum": ["not_started", "in_progress", "completed"],
       "default": "not_started",
-      "description": "Overall module completion status",
+      "description": "Overall module completion status. not_started = unlocked but learner has not entered. in_progress = learner has opened at least one 6E stage. completed = all 6 stages done and final artifact approved.",
       "example": "in_progress"
+    },
+    {
+      "name": "current_stage",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["engage", "explore", "explain", "express", "empower", "evolve"],
+      "description": "The 6E stage the learner is currently active in. Null if not_started. Updated each time a stage row is inserted in learner_6e_stage_progress.",
+      "example": "explore"
+    },
+    {
+      "name": "stages_completed",
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "description": "Count of 6E stages completed so far (0-6). Incremented each time a stage moves to completed in learner_6e_stage_progress.",
+      "example": 1
     },
     {
       "name": "completion_percentage",
       "type": "integer",
       "required": true,
       "default": 0,
-      "description": "Module completion percentage 0â€“100 based on 6E stages completed",
-      "example": 20
+      "description": "Module completion percentage 0-100. Derived as (stages_completed / 6) * 100.",
+      "example": 17
     },
-
     {
       "name": "artifact_submitted",
       "type": "boolean",
       "required": true,
       "default": false,
-      "description": "Whether the learner has submitted the module evaluation artifact",
+      "description": "Whether the learner has submitted the module final artifact at least once",
       "example": false
+    },
+    {
+      "name": "artifact_approval_status",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["pending", "under_review", "approved", "returned_for_rework", "rejected"],
+      "description": "Current status of the final artifact evaluation. Null until artifact is submitted. Set to approved when evaluation flow completes with approval — this is the trigger that unlocks the next module.",
+      "example": "under_review"
     },
     {
       "name": "last_activity_at",
@@ -92,6 +117,21 @@
     }
   ],
 
+  "constraints": [
+    {
+      "name": "chk_stages_completed_range",
+      "type": "check",
+      "rule": "stages_completed >= 0 AND stages_completed <= 6",
+      "description": "stages_completed must be between 0 and 6"
+    },
+    {
+      "name": "chk_completion_percentage_range",
+      "type": "check",
+      "rule": "completion_percentage >= 0 AND completion_percentage <= 100",
+      "description": "completion_percentage must be 0-100"
+    }
+  ],
+
   "indexes": [
     {
       "name": "idx_lmp_learner_id",
@@ -109,13 +149,19 @@
       "name": "idx_lmp_learner_module",
       "columns": ["learner_id", "module_id"],
       "type": "composite",
-      "unique": true
+      "unique": true,
+      "description": "One progress row per learner per module"
     },
     {
-      "name": "idx_lmp_module_status",
-      "columns": ["module_id", "module_status"],
+      "name": "idx_lmp_course_learner",
+      "columns": ["course_id", "learner_id"],
       "type": "composite",
-      "description": "Fast lookup: all learners at a given status for a module"
+      "description": "Fetch all module progress rows for a learner in a course in order"
+    },
+    {
+      "name": "idx_lmp_artifact_approval",
+      "columns": ["artifact_approval_status"],
+      "description": "Find modules pending review or recently approved for progression trigger"
     }
   ],
 
@@ -134,6 +180,12 @@
     },
     {
       "type": "many_to_one",
+      "related_table": "courses",
+      "local_key": "course_id",
+      "foreign_key": "course_id"
+    },
+    {
+      "type": "many_to_one",
       "related_table": "modules",
       "local_key": "module_id",
       "foreign_key": "id"
@@ -142,9 +194,11 @@
       "type": "one_to_many",
       "related_table": "learner_6e_stage_progress",
       "local_key": "id",
-      "foreign_key": "learner_module_progress_id"
+      "foreign_key": "learner_module_progress_id",
+      "description": "Each module progress row has up to 6 stage rows"
     }
   ],
+
 
   "sample_records": [
     {
@@ -154,11 +208,30 @@
       "course_id": "SE-BE-OBS-01",
       "module_id": "mod-001",
       "module_status": "in_progress",
-      "completion_percentage": 20,
+      "current_stage": "explore",
+      "stages_completed": 1,
+      "completion_percentage": 17,
       "artifact_submitted": false,
+      "artifact_approval_status": null,
       "last_activity_at": "2024-01-21T00:00:00Z",
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-21T00:00:00Z"
+    },
+    {
+      "id": "lmp-002",
+      "learner_id": "learner-001",
+      "learning_path_id": "path-001",
+      "course_id": "SE-BE-OBS-01",
+      "module_id": "mod-002",
+      "module_status": "not_started",
+      "current_stage": null,
+      "stages_completed": 0,
+      "completion_percentage": 0,
+      "artifact_submitted": false,
+      "artifact_approval_status": null,
+      "last_activity_at": null,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
     }
   ]
 }

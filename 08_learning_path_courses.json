@@ -1,6 +1,6 @@
 ﻿{
   "table_name": "learning_path_courses",
-  "description": "Ordered course assignments within a learning path. Replaces the courses JSON array that was embedded inside learning_paths. One row per course per path.",
+  "description": "Ordered course assignments within a learning path. One row per course per path. Each row represents one level transition for one capability gap. Courses are unlocked sequentially — the first course for each gap is immediately available, subsequent courses for the same gap unlock only after the previous course artifact is approved.",
   "primary_key": "id",
 
   "fields": [
@@ -13,7 +13,7 @@
       "example": "lpc-001"
     },
     {
-      "name": "learning_path_id",  
+      "name": "learning_path_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "learning_paths.id",
@@ -21,7 +21,7 @@
       "example": "path-001"
     },
     {
-      "name": "course_id",    
+      "name": "course_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "courses.course_id",
@@ -29,35 +29,59 @@
       "example": "SE-BE-OBS-01"
     },
     {
-      "name": "sequence_no",
+      "name": "capability_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "capabilities_master.id",
+      "description": "The capability this course addresses. Denormalized from courses.capability_id for fast gap-to-course tracing.",
+      "example": "cap-uuid-004"
+    },
+    {
+      "name": "from_level",
       "type": "integer",
       "required": true,
-      "description": "Order of this course within the path (1-based)",
+      "enum": [0, 1, 2, 3],
+      "description": "Capability level the learner is at when this course is assigned. Denormalized from courses.from_level.",
+      "example": 0
+    },
+    {
+      "name": "to_level",
+      "type": "integer",
+      "required": true,
+      "enum": [1, 2, 3, 4],
+      "description": "Capability level the learner reaches when this course artifact is approved. Denormalized from courses.to_level.",
       "example": 1
     },
     {
-      "name": "relevance_score",
+      "name": "sequence_no",
       "type": "integer",
-      "required": false,
-      "nullable": true,
-      "description": "Relevance score 0â€“100 for this course within the learner's path",
-      "example": 33
+      "required": true,
+      "description": "Overall display order of this course within the full learning path (1-based across all capabilities)",
+      "example": 1
     },
     {
-      "name": "match_reason",
-      "type": "text",
-      "required": false,
-      "nullable": true,
-      "description": "Short reason why this course was included in the path",
-      "example": "Covers essential backend development skills aligned with the student's learning track."
+      "name": "capability_sequence_no",
+      "type": "integer",
+      "required": true,
+      "description": "Order of this course within the same capability gap. e.g. for a gap of 3, this is 1, 2, or 3.",
+      "example": 1
     },
     {
-      "name": "why_recommended",
-      "type": "text",
+      "name": "is_locked",
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "Whether this course is currently locked for the learner. The first course per capability gap starts unlocked. Subsequent courses start locked and unlock when the previous course artifact is approved.",
+      "example": false
+    },
+    {
+      "name": "unlocks_after_submission_id",
+      "type": "uuid",
       "required": false,
       "nullable": true,
-      "description": "Longer justification for recommendation shown to the learner",
-      "example": "Covers essential backend development skills aligned with the student's learning track."
+      "foreign_key": "artifact_submissions.id",
+      "description": "The submission that must reach approved status to unlock this course. Null for the first course in each capability gap — those are immediately available.",
+      "example": "as-001"
     },
     {
       "name": "status",
@@ -73,7 +97,7 @@
       "type": "integer",
       "required": true,
       "default": 0,
-      "description": "Overall course completion percentage 0â€“100, derived from module progress",
+      "description": "Course completion percentage 0-100 based on module progress",
       "example": 17
     },
     {
@@ -89,7 +113,7 @@
       "type": "timestamp",
       "required": false,
       "nullable": true,
-      "description": "When the learner completed this course",
+      "description": "When the learner completed this course (all artifacts approved)",
       "example": null
     },
     {
@@ -106,6 +130,34 @@
     }
   ],
 
+  "constraints": [
+    {
+      "name": "chk_first_course_not_locked",
+      "type": "check",
+      "rule": "capability_sequence_no > 1 OR (capability_sequence_no = 1 AND unlocks_after_submission_id IS NULL)",
+      "description": "The first course in each capability sequence must have no unlock dependency."
+    },
+    {
+      "name": "chk_subsequent_course_has_unlock",
+      "type": "check",
+      "rule": "capability_sequence_no = 1 OR unlocks_after_submission_id IS NOT NULL",
+      "description": "Any course beyond the first in a capability sequence must reference the submission that unlocks it."
+    }
+  ],
+
+  "unique_constraints": [
+    {
+      "name": "uq_lpc_path_course",
+      "columns": ["learning_path_id", "course_id"],
+      "description": "One course per path"
+    },
+    {
+      "name": "uq_lpc_path_capability_level",
+      "columns": ["learning_path_id", "capability_id", "from_level"],
+      "description": "One level transition per capability per path — prevents duplicate course assignment for the same gap step"
+    }
+  ],
+
   "indexes": [
     {
       "name": "idx_lpc_learning_path_id",
@@ -116,14 +168,24 @@
       "columns": ["course_id"]
     },
     {
+      "name": "idx_lpc_capability_id",
+      "columns": ["capability_id"],
+      "description": "Find all courses assigned for a given capability in a path"
+    },
+    {
       "name": "idx_lpc_status",
       "columns": ["status"]
     },
     {
-      "name": "idx_lpc_path_course",
-      "columns": ["learning_path_id", "course_id"],
+      "name": "idx_lpc_is_locked",
+      "columns": ["learning_path_id", "is_locked"],
       "type": "composite",
-      "unique": true
+      "description": "Fast fetch of all unlocked courses in a path for dashboard display"
+    },
+    {
+      "name": "idx_lpc_unlocks_after",
+      "columns": ["unlocks_after_submission_id"],
+      "description": "On submission approval, find which course to unlock next"
     }
   ],
 
@@ -139,7 +201,26 @@
       "related_table": "courses",
       "local_key": "course_id",
       "foreign_key": "course_id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "capabilities_master",
+      "local_key": "capability_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "artifact_submissions",
+      "local_key": "unlocks_after_submission_id",
+      "foreign_key": "id",
+      "description": "Nullable — only set for courses that require a prior approved submission to unlock"
     }
+  ],
+
+  "notes": [
+    "When gap engine runs and finds capability_id=X with gap=2 (current_level=0, required_level=2), it inserts 2 rows: course L0→L1 (is_locked=false, capability_sequence_no=1) and course L1→L2 (is_locked=true, capability_sequence_no=2, unlocks_after_submission_id=NULL until L0→L1 course artifact is submitted).",
+    "On artifact approval for L0→L1 course: set is_locked=false on the L1→L2 row, set unlocks_after_submission_id to the approved submission id.",
+    "completion_percentage is recomputed from learner_module_progress rows for this course."
   ],
 
   "sample_records": [
@@ -147,17 +228,37 @@
       "id": "lpc-001",
       "learning_path_id": "path-001",
       "course_id": "SE-BE-OBS-01",
+      "capability_id": "cap-uuid-004",
+      "from_level": 0,
+      "to_level": 1,
       "sequence_no": 1,
-      "relevance_score": 33,
-      "match_reason": "Covers essential backend development skills aligned with the student's learning track.",
-      "why_recommended": "Covers essential backend development skills aligned with the student's learning track.",
+      "capability_sequence_no": 1,
+      "is_locked": false,
+      "unlocks_after_submission_id": null,
       "status": "in_progress",
       "completion_percentage": 17,
       "started_at": "2024-01-15T00:00:00Z",
       "completed_at": null,
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-15T00:00:00Z"
+    },
+    {
+      "id": "lpc-002",
+      "learning_path_id": "path-001",
+      "course_id": "SE-BE-OBS-02",
+      "capability_id": "cap-uuid-004",
+      "from_level": 1,
+      "to_level": 2,
+      "sequence_no": 2,
+      "capability_sequence_no": 2,
+      "is_locked": true,
+      "unlocks_after_submission_id": null,
+      "status": "not_started",
+      "completion_percentage": 0,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
     }
   ]
 }
-

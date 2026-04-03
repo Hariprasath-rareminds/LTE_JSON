@@ -1,19 +1,19 @@
 ﻿{
   "table_name": "learner_6e_stage_progress",
-  "description": "One row per learner per 6E stage per module. Rows are created on entry â€” a row is inserted with in_progress when the learner first opens a stage, and updated to completed when they finish it. Absence of a row means the learner has not reached that stage yet. No pre-created rows, no locked/not_started states.",
+  "description": "One row per learner per 6E stage per module. A row is inserted with status=in_progress when the learner first enters a stage. It is updated to completed when they finish. Absence of a row means the stage has not been reached. Stages unlock in strict sequence: completing stage N triggers insertion of stage N+1. The evolve stage (stage 6) gates the artifact submission — the learner cannot submit the module artifact until evolve is completed.",
   "primary_key": "id",
 
   "fields": [
     {
-      "name": "id", 
-       "type": "uuid",
+      "name": "id",
+      "type": "uuid",
       "required": true,
       "primary_key": true,
       "description": "Unique record identifier",
       "example": "lsp-001"
     },
     {
-      "name": "learner_module_progress_id",  
+      "name": "learner_module_progress_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "learner_module_progress.id",
@@ -21,19 +21,19 @@
       "example": "lmp-001"
     },
     {
-      "name": "learner_id",  
+      "name": "learner_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "learner_profiles.id",
-      "description": "Denormalized for fast direct queries without joining learner_module_progress",
+      "description": "Denormalized for direct queries without joining learner_module_progress",
       "example": "learner-001"
     },
     {
-      "name": "module_id",  
+      "name": "module_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "modules.id",
-      "description": "Denormalized for fast direct queries",
+      "description": "Denormalized for direct queries",
       "example": "mod-001"
     },
     {
@@ -41,14 +41,15 @@
       "type": "varchar",
       "required": true,
       "enum": ["engage", "explore", "explain", "express", "empower", "evolve"],
-      "description": "Which of the 6E stages this row tracks",
+      "description": "Which of the 6E stages this row tracks. Stages must be completed in order: engage → explore → explain → express → empower → evolve.",
       "example": "engage"
     },
     {
       "name": "stage_order",
       "type": "integer",
       "required": true,
-      "description": "Sequence order: 1=engage, 2=explore, 3=explain, 4=express, 5=empower, 6=evolve. Used by application to determine which stage to unlock next â€” when stage_order N is completed, insert stage_order N+1 row as in_progress.",
+      "enum": [1, 2, 3, 4, 5, 6],
+      "description": "Fixed sequence: 1=engage, 2=explore, 3=explain, 4=express, 5=empower, 6=evolve. When stage_order N is completed, insert stage_order N+1 row as in_progress.",
       "example": 1
     },
     {
@@ -56,7 +57,7 @@
       "type": "varchar",
       "required": true,
       "enum": ["in_progress", "completed"],
-      "description": "Stage status. in_progress = row inserted when learner first enters this stage. completed = updated when learner finishes. No other states needed â€” absence of a row means not yet reached.",
+      "description": "Stage status. in_progress = row inserted when learner first enters this stage. completed = updated when learner finishes. No not_started or locked states — absence of a row means not yet reached.",
       "example": "completed"
     },
     {
@@ -71,7 +72,7 @@
       "type": "timestamp",
       "required": false,
       "nullable": true,
-      "description": "When the learner completed this stage. Null while in_progress, set when status moves to completed.",
+      "description": "When the learner completed this stage. Null while in_progress.",
       "example": "2024-01-20T00:00:00Z"
     },
     {
@@ -79,7 +80,7 @@
       "type": "integer",
       "required": true,
       "default": 0,
-      "description": "Total seconds spent in this stage across all sessions. Accumulated on each session end.",
+      "description": "Total seconds spent in this stage. Accumulated on each session end.",
       "example": 3600
     },
     {
@@ -100,26 +101,26 @@
     {
       "name": "idx_lsp_learner_module_progress_id",
       "columns": ["learner_module_progress_id"],
-      "description": "Fast lookup of all stage rows under a module progress header"
+      "description": "Fetch all stage rows under a module progress header"
     },
     {
       "name": "idx_lsp_learner_module",
       "columns": ["learner_id", "module_id"],
       "type": "composite",
-      "description": "Primary lookup: all stages a learner has touched in a module"
+      "description": "All stages a learner has touched in a module"
     },
     {
       "name": "idx_lsp_learner_module_stage",
       "columns": ["learner_id", "module_id", "stage_name"],
       "type": "composite",
       "unique": true,
-      "description": "Enforces one row per learner per module per stage"
+      "description": "One row per learner per module per stage"
     },
     {
       "name": "idx_lsp_stage_status",
       "columns": ["stage_name", "status"],
       "type": "composite",
-      "description": "Stage-level analytics: completion funnel, stuck learners per stage"
+      "description": "Stage-level analytics and stuck learner detection"
     }
   ],
 
@@ -128,8 +129,7 @@
       "type": "many_to_one",
       "related_table": "learner_module_progress",
       "local_key": "learner_module_progress_id",
-      "foreign_key": "id",
-      "description": "Each stage row belongs to one module progress header"
+      "foreign_key": "id"
     },
     {
       "type": "many_to_one",
@@ -176,4 +176,3 @@
     }
   ]
 }
-

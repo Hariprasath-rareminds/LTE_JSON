@@ -1,4 +1,4 @@
-﻿{
+{
   "table_name": "learner_capabilities",
   "description": "Per-learner capability scores, gaps, and skill recommendations. Replaces the skill_recommendation JSON that was embedded in learner_profiles. One row per learner per capability. This is the core of the capability transformation engine and every learner and recommendation decision traces back here.",
   "primary_key": "id",

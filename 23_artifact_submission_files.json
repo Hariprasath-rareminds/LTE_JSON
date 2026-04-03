@@ -1,0 +1,107 @@
+{
+  "table_name": "artifact_submission_files",
+  "description": "Stores learner-uploaded solution files for each question within a submission attempt. One row per file per question.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "submission_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "artifact_submissions.id",
+      "description": "The attempt this file belongs to"
+    },
+    {
+      "name": "question_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "artifact_questions.id",
+      "description": "The specific question this file answers"
+    },
+    {
+      "name": "file_name",
+      "type": "varchar",
+      "required": true,
+      "description": "Original uploaded file name",
+      "example": "root-cause-analysis.pdf"
+    },
+    {
+      "name": "file_url",
+      "type": "varchar",
+      "required": true,
+      "description": "Storage/CDN URL of the uploaded file",
+      "example": "https://content.rareminds.dev/submissions/as-001/aq-002/root-cause-analysis.pdf"
+    },
+    {
+      "name": "file_type",
+      "type": "varchar",
+      "required": true,
+      "enum": ["doc", "ppt", "excel", "pdf", "mp4", "mp3", "jpeg", "png", "sheet", "xls", "docs", "text", "zip"],
+      "description": "Type of the uploaded solution file"
+    },
+    {
+      "name": "file_size_bytes",
+      "type": "bigint",
+      "required": false,
+      "nullable": true,
+      "description": "File size in bytes for display and validation",
+      "example": 204800
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_file_type_valid",
+      "type": "check",
+      "rule": "file_type IN ('doc','ppt','excel','pdf','mp4','mp3','jpeg','png','sheet','xls','docs','text','zip')",
+      "description": "Only allowed file types accepted"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_asf_submission_id",
+      "columns": ["submission_id"],
+      "description": "Fetch all files for a submission attempt"
+    },
+    {
+      "name": "idx_asf_submission_question",
+      "columns": ["submission_id", "question_id"],
+      "description": "Fetch all files for a specific question within an attempt"
+    }
+  ],
+
+  "relationships": [
+     {
+      "type": "many_to_one",
+      "related_table": "artifact_submissions",
+      "local_key": "submission_id",
+      "foreign_key": "id",
+      "description": "File belongs to one submission attempt"
+    },
+   
+    {
+      "type": "many_to_one",
+      "related_table": "artifact_questions",
+      "local_key": "question_id",
+      "foreign_key": "id",
+      "description": "File answers one specific question"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "table_name": "artifact_evaluation_flows",
-  "description": "Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission.",
+  "description": "Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission. When the final stage reaches an approved decision, the progression engine fires: learner_capabilities.current_level is incremented, the next module or course is unlocked, and XP is awarded.",
   "primary_key": "id",
 
   "fields": [
@@ -20,7 +20,6 @@
       "description": "The submission attempt this stage belongs to",
       "example": "as-001"
     },
-
     {
       "name": "stage",
       "type": "varchar",
@@ -45,7 +44,6 @@
       "description": "Lifecycle state of this stage",
       "example": "in_progress"
     },
-
     {
       "name": "evaluated_by",
       "type": "uuid",
@@ -60,7 +58,7 @@
       "type": "integer",
       "required": false,
       "nullable": true,
-      "description": "Score awarded at this stage. Null until stage completes.",
+      "description": "Score awarded at this stage (0-100). Null until stage completes.",
       "example": 78
     },
     {
@@ -85,7 +83,7 @@
       "required": false,
       "nullable": true,
       "enum": ["pass", "fail", "return", "escalate", "skip"],
-      "description": "Stage outcome. escalate = move to next stage. return = send back for rework.",
+      "description": "Stage outcome. escalate = move to next evaluator stage. return = send back to learner for rework. pass at final stage = triggers progression.",
       "example": "escalate"
     },
     {
@@ -96,14 +94,13 @@
       "description": "When this stage was completed",
       "example": "2024-01-21T11:45:00Z"
     },
-
     {
       "name": "overall_status",
       "type": "varchar",
       "required": true,
       "enum": ["initiated", "in_progress", "completed", "returned_for_rework", "approved", "rejected"],
       "default": "initiated",
-      "description": "Rolled-up flow status across all stages. Updated as stages progress.",
+      "description": "Rolled-up flow status across all stages. When this reaches approved, the progression engine fires.",
       "example": "in_progress"
     },
     {
@@ -111,10 +108,9 @@
       "type": "boolean",
       "required": true,
       "default": false,
-      "description": "True for the stage currently active. Only one row per submission can be true at a time.",
+      "description": "True for the currently active stage. Only one row per submission can be true at a time.",
       "example": true
     },
-
     {
       "name": "created_at",
       "type": "timestamp",
@@ -140,7 +136,13 @@
       "name": "chk_score_range",
       "type": "check",
       "rule": "score IS NULL OR (score >= 0 AND score <= 100)",
-      "description": "Score must be between 0 and 100 if provided."
+      "description": "Score must be 0-100 if provided."
+    },
+    {
+      "name": "chk_progression_only_on_approval",
+      "type": "check",
+      "rule": "progression_triggered = false OR overall_status = 'approved'",
+      "description": "progression_triggered can only be true when overall_status is approved."
     }
   ],
 
@@ -169,7 +171,13 @@
     {
       "name": "idx_aef_overall_status",
       "columns": ["overall_status"],
-      "description": "Filter flows by overall status across all submissions"
+      "description": "Filter flows by overall status"
+    },
+    {
+      "name": "idx_aef_approved_not_triggered",
+      "columns": ["overall_status", "progression_triggered"],
+      "type": "composite",
+      "description": "Find approved flows where progression has not yet fired — used by the progression job as a safety net"
     }
   ],
 
@@ -189,6 +197,22 @@
     }
   ],
 
+  "progression_trigger_logic": {
+    "description": "What happens when overall_status is set to approved",
+    "steps": [
+      "1. Find the submission: SELECT artifact_id, learner_id, learner_module_progress_id FROM artifact_submissions WHERE id = :submission_id",
+      "2. Find the course for this artifact: SELECT course_id FROM modules JOIN module_artifacts ON modules.id = module_artifacts.module_id WHERE module_artifacts.id = :artifact_id",
+      "3. Find the course's capability transition: SELECT capability_id, to_level FROM courses WHERE course_id = :course_id",
+      "4. Update learner capability level: UPDATE learner_capabilities SET current_level = :to_level, level_label = :to_level_label, updated_at = NOW() WHERE learner_id = :learner_id AND capability_id = :capability_id",
+      "5. Update skill gap: UPDATE skill_gap_capabilities SET current_level = :to_level, gap = required_level - :to_level, has_gap = (required_level > :to_level) WHERE learner_id = :learner_id AND capability_id = :capability_id",
+      "6. Update module progress: UPDATE learner_module_progress SET artifact_approval_status = 'approved', module_status = 'completed' WHERE id = :learner_module_progress_id",
+      "7. Unlock next module: UPDATE learner_module_progress SET is_locked = false WHERE learner_id = :learner_id AND course_id = :course_id AND module_id = (next module_no) AND is_locked = true",
+      "8. If all modules in course are completed: UPDATE learning_path_courses SET status='completed', completed_at=NOW(). Then unlock next course in the capability gap sequence by setting is_locked=false on the next learning_path_courses row.",
+      "9. Award XP: INSERT INTO xp_events (learner_id, source_type, source_id, xp_awarded, earned_at) VALUES (:learner_id, 'artifact_approved', :submission_id, :xp_amount, NOW())",
+      "10. Mark progression as fired: UPDATE artifact_evaluation_flows SET progression_triggered = true WHERE id = :aef_id"
+    ]
+  },
+
   "sample_records": [
     {
       "id": "aef-001",
@@ -204,6 +228,7 @@
       "completed_at": "2024-01-21T11:00:00Z",
       "overall_status": "in_progress",
       "is_current_stage": false,
+      "progression_triggered": false,
       "created_at": "2024-01-21T10:15:00Z",
       "updated_at": "2024-01-21T11:00:00Z"
     },
@@ -221,23 +246,7 @@
       "completed_at": null,
       "overall_status": "in_progress",
       "is_current_stage": true,
-      "created_at": "2024-01-21T11:00:00Z",
-      "updated_at": "2024-01-21T11:00:00Z"
-    },
-    {
-      "id": "aef-003",
-      "submission_id": "as-001",
-      "stage": "industry",
-      "stage_order": 3,
-      "status": "pending",
-      "evaluated_by": null,
-      "score": null,
-      "feedback": null,
-      "improvements": null,
-      "decision": null,
-      "completed_at": null,
-      "overall_status": "in_progress",
-      "is_current_stage": false,
+      "progression_triggered": false,
       "created_at": "2024-01-21T11:00:00Z",
       "updated_at": "2024-01-21T11:00:00Z"
     }

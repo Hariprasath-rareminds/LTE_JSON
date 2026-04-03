@@ -1,0 +1,166 @@
+{
+  "table_name": "xp_events",
+  "description": "Append-only log of every XP-earning action for a learner. One row per event. Total XP is derived by summing xp_awarded for a learner. Events are written by the progression engine when a stage completes, an artifact is approved, or a course is completed.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique XP event identifier",
+      "example": "xp-001"
+    },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner who earned this XP",
+      "example": "learner-001"
+    },
+    {
+      "name": "source_type",
+      "type": "varchar",
+      "required": true,
+      "enum": ["stage_completed", "artifact_approved", "course_completed"],
+      "description": "What action earned the XP. stage_completed = one of the 6 stages finished. artifact_approved = final artifact passed evaluation. course_completed = all modules and artifacts in a course approved.",
+      "example": "artifact_approved"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "required": true,
+      "description": "ID of the object that triggered this XP event. For stage_completed: learner_6e_stage_progress.id. For artifact_approved: artifact_submissions.id. For course_completed: learning_path_courses.id.",
+      "example": "as-001"
+    },
+    {
+      "name": "xp_awarded",
+      "type": "integer",
+      "required": true,
+      "description": "XP points awarded for this event. Suggested defaults: stage_completed=10, artifact_approved=50, course_completed=100.",
+      "example": 50
+    },
+    {
+      "name": "capability_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "capabilities_master.id",
+      "description": "The capability this XP relates to. Populated for artifact_approved and course_completed events to support capability-level XP dashboards.",
+      "example": "cap-uuid-004"
+    },
+    {
+      "name": "earned_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "When this XP was earned",
+      "example": "2024-01-22T10:00:00Z"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "example": "2024-01-22T10:00:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_xp_positive",
+      "type": "check",
+      "rule": "xp_awarded > 0",
+      "description": "XP awarded must always be a positive integer"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_xp_learner_id",
+      "columns": ["learner_id"],
+      "description": "Fetch all XP events for a learner (sum for total XP)"
+    },
+    {
+      "name": "idx_xp_learner_source_type",
+      "columns": ["learner_id", "source_type"],
+      "type": "composite",
+      "description": "Filter XP events by type for a learner"
+    },
+    {
+      "name": "idx_xp_source_id",
+      "columns": ["source_id"],
+      "description": "Check if XP has already been awarded for a given source (idempotency guard)"
+    },
+    {
+      "name": "idx_xp_capability_id",
+      "columns": ["learner_id", "capability_id"],
+      "type": "composite",
+      "description": "Capability-level XP breakdown for dashboard"
+    },
+    {
+      "name": "idx_xp_earned_at",
+      "columns": ["learner_id", "earned_at"],
+      "type": "composite",
+      "description": "Time-series XP history for learner progress chart"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "capabilities_master",
+      "local_key": "capability_id",
+      "foreign_key": "id",
+      "description": "Nullable — only for artifact and course events"
+    }
+  ],
+
+  "xp_rules": {
+    "stage_completed": 10,
+    "artifact_approved": 50,
+    "course_completed": 100,
+    "note": "These are suggested defaults. Adjust per product requirements. Total XP = SUM(xp_awarded) WHERE learner_id = :lid."
+  },
+
+  "idempotency_note": "Before inserting an XP event, check SELECT id FROM xp_events WHERE source_id = :source_id AND source_type = :source_type. If a row exists, skip insertion. This prevents double XP on retry.",
+
+  "sample_records": [
+    {
+      "id": "xp-001",
+      "learner_id": "learner-001",
+      "source_type": "stage_completed",
+      "source_id": "lsp-001",
+      "xp_awarded": 10,
+      "capability_id": null,
+      "earned_at": "2024-01-20T00:00:00Z",
+      "created_at": "2024-01-20T00:00:00Z"
+    },
+    {
+      "id": "xp-002",
+      "learner_id": "learner-001",
+      "source_type": "artifact_approved",
+      "source_id": "as-002",
+      "xp_awarded": 50,
+      "capability_id": "cap-uuid-004",
+      "earned_at": "2024-01-22T10:00:00Z",
+      "created_at": "2024-01-22T10:00:00Z"
+    },
+    {
+      "id": "xp-003",
+      "learner_id": "learner-001",
+      "source_type": "course_completed",
+      "source_id": "lpc-001",
+      "xp_awarded": 100,
+      "capability_id": "cap-uuid-004",
+      "earned_at": "2024-01-22T10:01:00Z",
+      "created_at": "2024-01-22T10:01:00Z"
+    }
+  ]
+}

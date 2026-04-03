@@ -1,0 +1,73 @@
+{
+  "table_name": "level_scale",
+  "description": "Global proficiency scale used across all capabilities. Defines 6 levels (0–5) with generic behavioral definitions. Level 0 means no exposure; Level 5 means strategic design and leadership.",
+  "primary_key": "level_no",
+
+  "fields": [
+    {
+      "name": "level_no",
+      "type": "integer",
+      "required": true,
+      "primary_key": true,
+      "unique": true,
+      "description": "Numeric level identifier (0 = no exposure, 5 = strategic leader)",
+      "example": 1
+    },
+    {
+      "name": "level_code",
+      "type": "varchar",
+      "required": true,
+      "unique": true,
+      "description": "Short code for the level (L0 through L5)",
+      "example": "L1"
+    },
+    {
+      "name": "level_label",
+      "type": "varchar",
+      "required": true,
+      "description": "Human-readable label for this level",
+      "example": "Basic awareness"
+    },
+    {
+      "name": "generic_definition",
+      "type": "text",
+      "required": true,
+      "description": "Generic behavioral definition applying to any capability at this level",
+      "example": "Understands the basics and can support simple tasks."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_level_scale_no",
+      "columns": ["level_no"],
+      "type": "unique",
+      "description": "Primary lookup and ordering by level number"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "one_to_many",
+      "related_table": "capability_levels",
+      "local_key": "level_no",
+      "foreign_key": "level_no",
+      "description": "Each generic level maps to many capability-specific level definitions in capability_levels"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "level_no": 0,
+      "level_code": "L0",
+      "level_label": "No exposure",
+      "generic_definition": "No working exposure; not yet ready for assessment or autonomous execution."
+    },
+    {
+      "level_no": 1,
+      "level_code": "L1",
+      "level_label": "Basic awareness",
+      "generic_definition": "Understands the basics and can support simple tasks."
+    }
+  ]
+}

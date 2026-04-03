@@ -2,7 +2,6 @@
   "table_name": "roles",
   "description": "Master list of industry roles. Each role maps to capabilities learners in that role are expected to develop.",
   "primary_key": "id",
-
   "fields": [
     {
       "name": "id",
@@ -12,7 +11,7 @@
       "description": "Unique role identifier",
       "example": "role-001"
     },
-     {
+    {
       "name": "domain_id",
       "type": "uuid",
       "required": true,
@@ -51,6 +50,15 @@
       "example": "Designs and builds server-side services, APIs, and data layers."
     },
     {
+      "name": "next_role_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "roles.id",
+      "description": "Points to the next role in career progression (based on role_order)",
+      "example": "role-002"
+    },
+    {
       "name": "is_active",
       "type": "boolean",
       "required": true,
@@ -71,21 +79,23 @@
       "example": "2026-03-31T00:00:00Z"
     }
   ],
-
   "indexes": [
     {
       "name": "idx_roles_name",
-      "columns": ["name"],
+      "columns": [
+        "name"
+      ],
       "unique": true,
       "description": "Enforce unique role names"
     },
     {
       "name": "idx_roles_active",
-      "columns": ["is_active"],
+      "columns": [
+        "is_active"
+      ],
       "description": "Filter active roles"
     }
   ],
-
   "relationships": [
     {
       "type": "one_to_many",
@@ -93,17 +103,24 @@
       "local_key": "id",
       "foreign_key": "role_id",
       "description": "One role has many capabilities"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "next_role_id",
+      "foreign_key": "id",
+      "description": "Each role can point to its next role in the hierarchy"
     }
   ],
-
   "sample_records": [
     {
       "id": "role-001",
       "domain_id": "dom-001",
-      "name": "Backend Engineer",
-        "role_order": 2,
+      "name": "Junior Backend Engineer",
+      "role_order": 1,
       "industry": "Corporate Functions",
-      "description": "Designs and builds server-side services, APIs, and data layers.",
+      "description": "Entry-level backend developer assisting in API and service development.",
+      "next_role_id": "role-002",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
@@ -111,21 +128,23 @@
     {
       "id": "role-002",
       "domain_id": "dom-001",
-      "name": "Full-Stack Engineer",
-        "role_order": 2,
+      "name": "Backend Engineer",
+      "role_order": 2,
       "industry": "Corporate Functions",
-      "description": "Builds both frontend and backend components of an application.",
+      "description": "Designs and builds server-side services, APIs, and data layers.",
+      "next_role_id": "role-004",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
     },
     {
-      "id": "role-003",
+      "id": "role-004",
       "domain_id": "dom-001",
-      "name": "DevOps Engineer",
-        "role_order": 2,
+      "name": "Senior Backend Engineer",
+      "role_order": 3,
       "industry": "Corporate Functions",
-      "description": "Manages deployment pipelines, infrastructure, and release engineering.",
+      "description": "Leads backend architecture, optimizes performance, and mentors juniors.",
+      "next_role_id": null,
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"

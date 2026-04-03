@@ -215,13 +215,6 @@
     },
     {
       "type": "many_to_one",
-      "related_table": "assessments",
-      "local_key": "assessment_id",
-      "foreign_key": "id",
-      "description": "Each capability record is generated from one assessment"
-    },
-    {
-      "type": "many_to_one",
       "related_table": "learning_paths",
       "local_key": "learning_path_id",
       "foreign_key": "id",
@@ -254,7 +247,6 @@
     {
       "id": "lc-001",
       "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
       "learning_path_id": "path-001",
       "role_id": "role-001",
       "capability_id": "cap-uuid-004",
@@ -273,7 +265,7 @@
     {
       "id": "lc-002",
       "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
+      
       "learning_path_id": "path-001",
       "role_id": "role-001",
       "capability_id": "cap-uuid-002",
@@ -292,7 +284,7 @@
     {
       "id": "lc-003",
       "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
+  
       "learning_path_id": "path-001",
       "role_id": "role-001",
       "capability_id": "cap-uuid-001",
@@ -311,7 +303,7 @@
     {
       "id": "lc-004",
       "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
+
       "learning_path_id": "path-002",
       "role_id": "role-002",
       "capability_id": "cap-uuid-011",
@@ -330,7 +322,6 @@
     {
       "id": "lc-005",
       "learner_id": "learner-002",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
       "learning_path_id": "path-003",
       "role_id": "role-004",
       "capability_id": "cap-uuid-003",
@@ -349,7 +340,7 @@
     {
       "id": "lc-006",
       "learner_id": "learner-002",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
+   
       "learning_path_id": "path-003",
       "role_id": "role-004",
       "capability_id": "cap-uuid-005",
@@ -368,7 +359,7 @@
     {
       "id": "lc-007",
       "learner_id": "learner-002",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
+   
       "learning_path_id": "path-004",
       "role_id": "role-005",
       "capability_id": "cap-uuid-009",

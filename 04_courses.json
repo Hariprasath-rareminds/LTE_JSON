@@ -1,198 +1,145 @@
 {
   "table_name": "courses",
-  "description": "Course catalog where each course represents one capability at one specific proficiency level. A role has 5–6 capabilities; each capability has 5 levels (L1–L5), producing 5 courses per capability. Learners unlock each level course sequentially. The recommendation engine matches a learner's current level gap per capability to the corresponding level course.",
+  "description": "Course catalog where each course represents one capability at one specific proficiency level.",
   "primary_key": "course_id",
-
-  "design_rules": [
-    "One course = one capability × one level (L1 through L5).",
-    "A role with 6 capabilities has up to 30 courses (6 × 5 levels).",
-    "Level 0 (no exposure) has no course — it is the entry state before L1.",
-    "Courses are completed sequentially per capability: L1 must be done before L2 is unlocked.",
-    "The unique constraint on (capability_id, level_no) guarantees exactly one course per capability per level.",
-    "Recommendation engine lookup: SELECT course_id FROM courses WHERE capability_id = :cap AND level_no = :target_level."
-  ],
 
   "fields": [
     {
       "name": "course_id",
       "type": "uuid",
       "required": true,
-      "primary_key": true,
-      "description": "Unique surrogate identifier for the course",
-      "example": "crs-ta-l1"
+      "primary_key": true
     },
     {
       "name": "course_code",
       "type": "varchar",
       "required": true,
-      "unique": true,
-      "description": "Human-readable course code following the convention {CAPABILITY_CODE}_L{level_no}. Matches the capability name at a specific level.",
-      "example": "TA_L1"
+      "unique": true
     },
     {
       "name": "role_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "roles.id",
-      "description": "The primary role this course is designed for. A role owns 5–6 capabilities; this links the course back to that role context.",
-      "example": "role-001"
+      "foreign_key": "roles.id"
     },
     {
       "name": "capability_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The single capability this course develops. The capability name IS the course subject (e.g. 'Talent Acquisition', 'HR Operations & Compliance').",
-      "example": "cap-uuid-ta"
+      "foreign_key": "capabilities_master.id"
     },
     {
       "name": "capability_code",
       "type": "varchar",
-      "required": true,
-      "description": "Short code of the capability (e.g. TA, ELM, HRO). Denormalized for fast lookups.",
-      "example": "TA"
+      "required": true
     },
     {
       "name": "capability_name",
       "type": "varchar",
-      "required": true,
-      "description": "Full capability name, used as the course title subject (e.g. 'Talent Acquisition'). Denormalized from capabilities_master for display.",
-      "example": "Talent Acquisition"
+      "required": true
     },
+
+    {
+      "name": "level_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "level_scale.id",
+      "description": "References the level using UUID (normalized FK)"
+    },
+
     {
       "name": "level_no",
       "type": "integer",
       "required": true,
-      "foreign_key": "level_scale.level_no",
       "enum": [1, 2, 3, 4, 5],
-      "description": "The proficiency level this course develops the learner toward. References level_scale. Level 0 is pre-course state; this field starts at 1.",
-      "example": 1
+      "description": "Numeric level for ordering and business logic"
     },
     {
       "name": "level_code",
       "type": "varchar",
-      "required": true,
-      "description": "Short level code (L1–L5). Denormalized from level_scale for display convenience.",
-      "example": "L1"
+      "required": true
     },
     {
       "name": "level_label",
       "type": "varchar",
-      "required": true,
-      "description": "Human-readable level label from level_scale (e.g. 'Basic awareness', 'Independently executes'). Denormalized for UI rendering.",
-      "example": "Basic awareness"
+      "required": true
     },
     {
       "name": "title",
       "type": "varchar",
-      "required": true,
-      "description": "Course title. Typically formatted as '{Capability Name} – {Level Label}' to make the learning goal immediately clear.",
-      "example": "Talent Acquisition – Basic Awareness"
+      "required": true
     },
     {
       "name": "description",
       "type": "text",
-      "required": true,
-      "description": "Course summary describing what the learner will be able to do upon completing this level of the capability.",
-      "example": "Develops foundational awareness of hiring stages, resume collection, and sourcing via job portals."
+      "required": true
     },
     {
       "name": "observable_behavior",
       "type": "text",
-      "required": true,
-      "description": "What the learner must demonstrate to pass this course level. Sourced from capability_levels.observable_behavior for the matching capability + level.",
-      "example": "Understands hiring stages, assists with resume collection, and supports basic sourcing via job portals."
+      "required": true
     },
     {
       "name": "example_outputs",
       "type": "text",
-      "required": true,
-      "description": "Concrete artifacts or deliverables expected as evidence at this level. Sourced from capability_levels.example_outputs.",
-      "example": "Collected resumes, interview scheduling support, hiring tracker updates."
+      "required": true
     },
     {
       "name": "domain_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "domains.id",
-      "description": "Domain classification for this course (e.g. Human Resources, Analytics).",
-      "example": "dom-hr"
+      "foreign_key": "domains.id"
     },
     {
       "name": "duration_minutes",
       "type": "integer",
-      "required": true,
-      "description": "Estimated time to complete the course in minutes.",
-      "example": 120
+      "required": true
     },
     {
       "name": "xp_reward",
       "type": "integer",
-      "required": true,
-      "description": "Experience points awarded on successful course completion.",
-      "example": 100
+      "required": true
     },
     {
       "name": "difficulty_level",
       "type": "varchar",
       "required": true,
-      "enum": ["beginner", "foundation", "intermediate", "advanced", "expert"],
-      "description": "Human-readable difficulty label. Maps to level_no: L1=beginner, L2=foundation, L3=intermediate, L4=advanced, L5=expert.",
-      "example": "beginner"
+      "enum": ["beginner", "foundation", "intermediate", "advanced", "expert"]
     },
     {
       "name": "thumbnail_url",
       "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "description": "Course thumbnail image URL for UI display.",
-      "example": "https://cdn.example.com/courses/ta-l1.jpg"
+      "nullable": true
     },
     {
       "name": "is_active",
       "type": "boolean",
-      "required": true,
-      "default": true,
-      "description": "Whether this course is active in the catalog.",
-      "example": true
+      "default": true
     },
     {
       "name": "is_published",
       "type": "boolean",
-      "required": true,
-      "default": true,
-      "description": "Whether this course is published and visible to learners.",
-      "example": true
+      "default": true
     },
     {
       "name": "version_no",
       "type": "integer",
-      "required": true,
-      "default": 1,
-      "description": "Content version number. Increment on major content updates.",
-      "example": 1
+      "default": 1
     },
     {
       "name": "course_status",
       "type": "varchar",
-      "required": true,
-      "enum": ["published", "draft", "archived"],
-      "description": "Publication lifecycle status of the course.",
-      "example": "published"
+      "enum": ["published", "draft", "archived"]
     },
     {
       "name": "created_at",
       "type": "timestamp",
-      "required": true,
-      "description": "Record creation timestamp",
-      "example": "2024-01-01T00:00:00Z"
+      "required": true
     },
     {
       "name": "updated_at",
       "type": "timestamp",
-      "required": true,
-      "description": "Last update timestamp",
-      "example": "2024-01-01T00:00:00Z"
+      "required": true
     }
   ],
 
@@ -200,27 +147,18 @@
     {
       "name": "chk_level_no_range",
       "type": "check",
-      "rule": "level_no BETWEEN 1 AND 5",
-      "description": "Courses exist only for levels 1–5. Level 0 is the pre-entry state with no course."
-    },
-    {
-      "name": "chk_difficulty_level_mapping",
-      "type": "check",
-      "rule": "difficulty_level IN ('beginner','foundation','intermediate','advanced','expert')",
-      "description": "Difficulty must match the level_no: L1=beginner, L2=foundation, L3=intermediate, L4=advanced, L5=expert."
+      "rule": "level_no BETWEEN 1 AND 5"
     }
   ],
 
   "unique_constraints": [
     {
       "name": "uq_course_capability_level",
-      "columns": ["capability_id", "level_no"],
-      "description": "Exactly one course per capability per level. The recommendation engine relies on this to return exactly one course per learner capability gap."
+      "columns": ["capability_id", "level_no"]
     },
     {
       "name": "uq_course_code",
-      "columns": ["course_code"],
-      "description": "Human-readable course code must be unique across all courses."
+      "columns": ["course_code"]
     }
   ],
 
@@ -228,28 +166,16 @@
     {
       "name": "idx_courses_capability_level",
       "columns": ["capability_id", "level_no"],
-      "type": "unique",
-      "description": "Primary recommendation engine lookup: given a capability + target level, return exactly one course."
+      "type": "unique"
     },
     {
       "name": "idx_courses_role_id",
-      "columns": ["role_id"],
-      "description": "Get all courses belonging to a specific role."
+      "columns": ["role_id"]
     },
     {
-      "name": "idx_courses_domain_id",
-      "columns": ["domain_id"],
-      "description": "Filter courses by domain."
-    },
-    {
-      "name": "idx_courses_level_no",
-      "columns": ["level_no"],
-      "description": "Filter courses by proficiency level."
-    },
-    {
-      "name": "idx_courses_is_active_published",
-      "columns": ["is_active", "is_published"],
-      "description": "Filter only active, published courses for learner-facing queries."
+      "name": "idx_courses_level_id",
+      "columns": ["level_id"],
+      "description": "Join optimization with level_scale"
     }
   ],
 
@@ -258,51 +184,22 @@
       "type": "many_to_one",
       "related_table": "roles",
       "local_key": "role_id",
-      "foreign_key": "id",
-      "description": "Each course belongs to a primary role. One role has 5–6 capabilities × 5 levels = up to 30 courses."
+      "foreign_key": "id"
     },
     {
       "type": "many_to_one",
       "related_table": "capabilities_master",
       "local_key": "capability_id",
-      "foreign_key": "id",
-      "description": "Each course targets exactly one capability. The capability name is the course subject."
+      "foreign_key": "id"
     },
     {
       "type": "many_to_one",
       "related_table": "level_scale",
-      "local_key": "level_no",
-      "foreign_key": "level_no",
-      "description": "Each course maps to a level in the global proficiency scale (L1–L5)."
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "domains",
-      "local_key": "domain_id",
+      "local_key": "level_id",
       "foreign_key": "id",
-      "description": "Each course is classified under a domain."
-    },
-    {
-      "type": "one_to_many",
-      "related_table": "learner_course_enrollments",
-      "local_key": "course_id",
-      "foreign_key": "course_id",
-      "description": "Learner enrollment and completion records per course."
-    },
-    {
-      "type": "one_to_many",
-      "related_table": "learner_artifact_submissions",
-      "local_key": "course_id",
-      "foreign_key": "course_id",
-      "description": "Evidence artifacts submitted by learners for this course."
+      "description": "Normalized FK to level_scale"
     }
   ],
-
-  "recommendation_logic": {
-    "description": "How the engine selects courses for a learner",
-    "query": "SELECT course_id FROM courses WHERE capability_id = :cap_id AND level_no = :target_level AND is_active = true AND is_published = true LIMIT 1",
-    "gap_handling": "If a learner is at level 0 for a capability required at level 3, the engine queues 3 courses in order: L1 → L2 → L3. Only L1 unlocks immediately. Each subsequent level unlocks after the prior course artifact is approved."
-  },
 
   "sample_records": [
     {
@@ -312,44 +209,18 @@
       "capability_id": "cap-uuid-ta",
       "capability_code": "TA",
       "capability_name": "Talent Acquisition",
+      "level_id": "lvl-uuid-001",
       "level_no": 1,
       "level_code": "L1",
       "level_label": "Basic awareness",
       "title": "Talent Acquisition – Basic Awareness",
-      "description": "Develops foundational awareness of hiring stages, resume collection, and sourcing via job portals.",
-      "observable_behavior": "Understands hiring stages, assists with resume collection, and supports basic sourcing via job portals.",
-      "example_outputs": "Collected resumes, interview scheduling support, hiring tracker updates.",
+      "description": "Develops foundational awareness of hiring stages.",
+      "observable_behavior": "Understands hiring stages and supports sourcing.",
+      "example_outputs": "Resume collection, scheduling support.",
       "domain_id": "dom-hr",
       "duration_minutes": 120,
       "xp_reward": 100,
       "difficulty_level": "beginner",
-      "thumbnail_url": "https://cdn.example.com/courses/ta-l1.jpg",
-      "is_active": true,
-      "is_published": true,
-      "version_no": 1,
-      "course_status": "published",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "course_id": "crs-ta-l2",
-      "course_code": "TA_L2",
-      "role_id": "role-hr-exec",
-      "capability_id": "cap-uuid-ta",
-      "capability_code": "TA",
-      "capability_name": "Talent Acquisition",
-      "level_no": 2,
-      "level_code": "L2",
-      "level_label": "Executes with guidance",
-      "title": "Talent Acquisition – Executes with Guidance",
-      "description": "Builds ability to source candidates independently for straightforward roles, screen basic resumes, and schedule interviews.",
-      "observable_behavior": "Sources candidates independently for straightforward roles, screens basic resumes, and schedules interviews.",
-      "example_outputs": "Shortlists for entry-level roles, sourcing logs, interview pipelines.",
-      "domain_id": "dom-hr",
-      "duration_minutes": 120,
-      "xp_reward": 100,
-      "difficulty_level": "foundation",
-      "thumbnail_url": null,
       "is_active": true,
       "is_published": true,
       "version_no": 1,

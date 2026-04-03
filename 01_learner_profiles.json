@@ -38,15 +38,6 @@
       "example": "beginner"
     },
     {
-      "name": "role_readiness_percentage",
-      "type": "decimal",
-      "required": false,
-      "nullable": true,
-      "default": null,
-      "description": "Cached role readiness percentage (0.00–100.00) for the learner's current active role target. Computed from capability gap progress and updated each time a capability level is approved. Null until the learner selects a role and completes at least one assessment.",
-      "example": 42.50
-    },
-    {
       "name": "is_active",
       "type": "boolean",
       "required": true,
@@ -112,7 +103,6 @@
       "student_id": "3531e63e-589e-46e7-9248-4a769e84b00d",
       "grade_level": "ug",
       "skill_level": "beginner",
-      "role_readiness_percentage": 28.00,
       "is_active": true,
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
@@ -122,7 +112,6 @@
       "student_id": "4631f74f-690f-57f8-0259-5b870e95f1f0",
       "grade_level": "pg",
       "skill_level": "intermediate",
-      "role_readiness_percentage": 65.50,
       "is_active": true,
       "created_at": "2024-02-15T00:00:00Z",
       "updated_at": "2024-02-15T00:00:00Z"

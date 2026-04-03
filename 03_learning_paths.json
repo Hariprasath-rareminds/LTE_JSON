@@ -37,6 +37,15 @@
       "example": "role-001"
     },
     {
+      "name": "role_readiness_percentage",
+      "type": "decimal",
+      "required": false,
+      "nullable": true,
+      "default": null,
+      "description": "Cached role readiness percentage (0.00–100.00) for the learner's current active role target. Computed from capability gap progress and updated each time a capability level is approved. Null until the learner selects a role and completes at least one assessment.",
+      "example": 42.50
+    },
+    {
       "name": "level",
       "type": "integer",
       "required": true,
@@ -193,6 +202,7 @@
       "learning_track_id": "track-001",
       "learner_id": "learner-001",
       "role_id": "role-001",
+      "role_readiness_percentage": 65.50,
       "level": 1,
       "status": "in_progress",
       "is_active": true,

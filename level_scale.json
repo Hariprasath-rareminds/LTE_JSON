@@ -1,14 +1,21 @@
 {
   "table_name": "level_scale",
   "description": "Global proficiency scale used across all capabilities. Defines 6 levels (0–5) with generic behavioral definitions. Level 0 means no exposure; Level 5 means strategic design and leadership.",
-  "primary_key": "level_no",
+  "primary_key": "id",
 
   "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique identifier for each level",
+      "example": "lvl-uuid-001"
+    },
     {
       "name": "level_no",
       "type": "integer",
       "required": true,
-      "primary_key": true,
       "unique": true,
       "description": "Numeric level identifier (0 = no exposure, 5 = strategic leader)",
       "example": 1
@@ -39,10 +46,16 @@
 
   "indexes": [
     {
-      "name": "idx_level_scale_no",
+      "name": "idx_level_scale_level_no",
       "columns": ["level_no"],
       "type": "unique",
-      "description": "Primary lookup and ordering by level number"
+      "description": "Ensure unique level ordering"
+    },
+    {
+      "name": "idx_level_scale_code",
+      "columns": ["level_code"],
+      "type": "unique",
+      "description": "Ensure unique level codes (L0–L5)"
     }
   ],
 
@@ -50,20 +63,22 @@
     {
       "type": "one_to_many",
       "related_table": "capability_levels",
-      "local_key": "level_no",
-      "foreign_key": "level_no",
-      "description": "Each generic level maps to many capability-specific level definitions in capability_levels"
+      "local_key": "id",
+      "foreign_key": "level_id",
+      "description": "Each generic level maps to many capability-specific level definitions"
     }
   ],
 
   "sample_records": [
     {
+      "id": "lvl-uuid-000",
       "level_no": 0,
       "level_code": "L0",
       "level_label": "No exposure",
       "generic_definition": "No working exposure; not yet ready for assessment or autonomous execution."
     },
     {
+      "id": "lvl-uuid-001",
       "level_no": 1,
       "level_code": "L1",
       "level_label": "Basic awareness",

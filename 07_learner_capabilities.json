@@ -1,7 +1,8 @@
 {
   "table_name": "learner_capabilities",
-  "description": "Per-learner capability scores, gaps, and skill recommendations. Replaces the skill_recommendation JSON that was embedded in learner_profiles. One row per learner per capability. This is the core of the capability transformation engine and every learner and recommendation decision traces back here.",
+  "description": "Per-learner capability scores and gaps, scoped per track and role. One row per learner + track + role + capability. This is the core of the capability transformation engine — every recommendation decision traces back here.",
   "primary_key": "id",
+
   "fields": [
     {
       "name": "id",
@@ -24,45 +25,62 @@
       "type": "uuid",
       "required": true,
       "foreign_key": "assessments.id",
-      "description": "Identifier for the specific assessment that generated this capability data",
+      "description": "Assessment that generated this capability score",
       "example": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f"
+    },
+    {
+      "name": "learning_track_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learning_tracks.id",
+      "description": "The learning track this capability record is scoped to. A learner has up to 3 tracks, each with multiple roles.",
+      "example": "track-001"
+    },
+    {
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id",
+      "description": "The role within the track this capability is being assessed against. Each track has 3–4 roles.",
+      "example": "role-001"
     },
     {
       "name": "capability_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "capabilities_master.id",
-      "description": "FK to capabilities_master.id. References the specific named capability record.",
+      "description": "The specific capability being assessed. References capabilities_master.id.",
       "example": "cap-uuid-004"
     },
     {
       "name": "current_score",
       "type": "integer",
       "required": true,
-      "description": "Current capability score 0â€“100 derived from assessment",
+      "description": "Raw capability score 0–100 derived from assessment",
       "example": 20
     },
     {
       "name": "current_level",
-      "type": "varchar",
+      "type": "integer",
       "required": true,
-      "enum": ["beginner", "emerging", "intermediate", "advanced", "expert"],
-      "description": "Current capability level label",
-      "example": "beginner"
+      "enum": [0, 1, 2, 3, 4],
+      "description": "Learner's current capability level on the L0–L4 scale derived from assessment. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
+      "example": 1
     },
     {
       "name": "target_level",
       "type": "integer",
       "required": false,
       "nullable": true,
-      "description": "Target proficiency level on a 1â€“5 scale. Null if not part of a priority recommendation.",
-      "example": 4
+      "enum": [0, 1, 2, 3, 4],
+      "description": "Required capability level for the target role on the L0–L4 scale. Sourced from role_capability_map.required_level. Null if not part of a priority recommendation.",
+      "example": 3
     },
     {
       "name": "gap_score",
       "type": "integer",
       "required": true,
-      "description": "Gap between current score and target score (0â€“100). Used for path prioritization.",
+      "description": "Gap between current score and target score (0–100). Used for path prioritization.",
       "example": 60
     },
     {
@@ -71,7 +89,7 @@
       "required": false,
       "nullable": true,
       "enum": ["A", "B"],
-      "description": "Recommendation priority band. A = highest priority, B = secondary, null = assessment-only (not recommended for action yet).",
+      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, null = no gap or assessment-only.",
       "example": "A"
     },
     {
@@ -94,67 +112,101 @@
       "name": "created_at",
       "type": "timestamp",
       "required": true,
+      "description": "Record creation timestamp",
       "example": "2024-01-01T00:00:00Z"
     },
     {
       "name": "updated_at",
       "type": "timestamp",
       "required": true,
+      "description": "Last update timestamp",
       "example": "2024-01-01T00:00:00Z"
     }
   ],
+
   "indexes": [
     {
       "name": "idx_learner_capabilities_learner_assessment",
       "columns": ["learner_id", "assessment_id"],
-      "type": "composite"
+      "type": "composite",
+      "description": "Fetch all capability scores for a learner from a specific assessment"
     },
     {
-      "name": "idx_learner_capabilities_capability_name",
-      "columns": ["capability_name"]
+      "name": "idx_learner_capabilities_learner_track_role",
+      "columns": ["learner_id", "learning_track_id", "role_id"],
+      "type": "composite",
+      "description": "Fetch all capabilities for a learner scoped to a specific track and role"
+    },
+    {
+      "name": "idx_learner_capabilities_role_capability",
+      "columns": ["role_id", "capability_id"],
+      "type": "composite",
+      "description": "Look up a learner's level for a specific capability within a role"
     },
     {
       "name": "idx_learner_capabilities_priority_band",
-      "columns": ["priority_band"]
+      "columns": ["learner_id", "priority_band"],
+      "type": "composite",
+      "description": "Fetch all priority A or B capabilities for a learner for course recommendation"
     },
     {
       "name": "idx_learner_capabilities_unique",
-      "columns": ["learner_id", "assessment_id", "capability_id"],
+      "columns": ["learner_id", "assessment_id", "learning_track_id", "role_id", "capability_id"],
       "type": "composite",
       "unique": true,
-      "description": "One capability score per learner per assessment"
+      "description": "One capability score per learner per assessment per track per role — prevents duplicate rows"
     }
   ],
+
   "relationships": [
     {
       "type": "many_to_one",
       "related_table": "learner_profiles",
       "local_key": "learner_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each capability record belongs to one learner"
     },
     {
       "type": "many_to_one",
       "related_table": "assessments",
       "local_key": "assessment_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each capability record is generated from one assessment"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learning_tracks",
+      "local_key": "learning_track_id",
+      "foreign_key": "id",
+      "description": "Each capability record is scoped to one learning track"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each capability record is assessed against one role within the track"
     },
     {
       "type": "many_to_one",
       "related_table": "capabilities_master",
       "local_key": "capability_id",
       "foreign_key": "id",
-      "description": "Each learner capability record references a master capability definition"
+      "description": "Each record references a master capability definition"
     }
   ],
+
   "sample_records": [
     {
       "id": "lc-001",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-08",
+      "learning_track_id": "track-001",
+      "role_id": "role-001",
+      "capability_id": "cap-uuid-004",
       "current_score": 20,
-      "current_level": "beginner",
-      "target_level": 4,
+      "current_level": 1,
+      "target_level": 3,
       "gap_score": 60,
       "priority_band": "A",
       "why_needed": "Monitor production systems and diagnose runtime issues",
@@ -166,10 +218,12 @@
       "id": "lc-002",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-02",
+      "learning_track_id": "track-001",
+      "role_id": "role-001",
+      "capability_id": "cap-uuid-002",
       "current_score": 40,
-      "current_level": "emerging",
-      "target_level": 4,
+      "current_level": 1,
+      "target_level": 3,
       "gap_score": 40,
       "priority_band": "A",
       "why_needed": "Build scalable, efficient backend services",
@@ -181,10 +235,12 @@
       "id": "lc-003",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-01",
+      "learning_track_id": "track-001",
+      "role_id": "role-002",
+      "capability_id": "cap-uuid-001",
       "current_score": 20,
-      "current_level": "beginner",
-      "target_level": 3,
+      "current_level": 0,
+      "target_level": 2,
       "gap_score": 40,
       "priority_band": "B",
       "why_needed": "Architect robust backend solutions for production",
@@ -196,10 +252,12 @@
       "id": "lc-004",
       "learner_id": "learner-001",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-11",
+      "learning_track_id": "track-002",
+      "role_id": "role-003",
+      "capability_id": "cap-uuid-011",
       "current_score": 40,
-      "current_level": "emerging",
-      "target_level": 3,
+      "current_level": 1,
+      "target_level": 2,
       "gap_score": 20,
       "priority_band": "B",
       "why_needed": "Ensure code reliability and maintainability",
@@ -211,9 +269,11 @@
       "id": "lc-005",
       "learner_id": "learner-002",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-03",
+      "learning_track_id": "track-003",
+      "role_id": "role-004",
+      "capability_id": "cap-uuid-003",
       "current_score": 50,
-      "current_level": "intermediate",
+      "current_level": 2,
       "target_level": 4,
       "gap_score": 50,
       "priority_band": "A",
@@ -226,9 +286,11 @@
       "id": "lc-006",
       "learner_id": "learner-002",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-05",
+      "learning_track_id": "track-003",
+      "role_id": "role-004",
+      "capability_id": "cap-uuid-005",
       "current_score": 60,
-      "current_level": "intermediate",
+      "current_level": 2,
       "target_level": 4,
       "gap_score": 40,
       "priority_band": "A",
@@ -241,9 +303,11 @@
       "id": "lc-007",
       "learner_id": "learner-002",
       "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "capability_id": "SE-CAP-09",
+      "learning_track_id": "track-004",
+      "role_id": "role-005",
+      "capability_id": "cap-uuid-009",
       "current_score": 50,
-      "current_level": "intermediate",
+      "current_level": 2,
       "target_level": 3,
       "gap_score": 50,
       "priority_band": "B",

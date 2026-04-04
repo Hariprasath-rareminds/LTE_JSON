@@ -87,13 +87,6 @@
       "local_key": "id",
       "foreign_key": "learner_id",
       "description": "A learner profile can have multiple recommended learning tracks"
-    },
-    {
-      "type": "one_to_many",
-      "related_table": "learner_capabilities",
-      "local_key": "id",
-      "foreign_key": "learner_id",
-      "description": "All capability scores and recommendations for this learner live in learner_capabilities"
     }
   ],
 

@@ -11,13 +11,7 @@
       "primary_key": true,
       "description": "Surrogate UUID primary key"
     },
-    {
-      "name": "capability_id",
-      "type": "varchar",
-      "required": true,
-      "description": "Client canonical ID from Role L1 Gap Model. Not unique alone.",
-      "example": "SE-CAP-01"
-    },
+    
     {
       "name": "capability_library",
       "type": "varchar",
@@ -71,35 +65,41 @@
   "unique_constraints": [
     {
       "name": "uq_capabilities_master_id_capability",
-      "columns": ["capability_id", "capability"],
-      "description": "capability_id + capability name must be unique"
+      "columns": ["id", "capability"],
+      "description": "id + capability name must be unique"
     }
   ],
 
   "indexes": [
     {
       "name": "idx_capabilities_master_capability_id",
-      "columns": ["capability_id"],
-      "description": "Group all named capabilities under a given capability_id"
+      "columns": ["id"],
+      "description": "Group all named capabilities under a given id"
     }
   ],
 
   "relationships": [
     {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "id",
+      "foreign_key": "role_id",
+      "description": "Each capability belongs to one role"
+    },
+    {
       "type": "one_to_many",
-      "related_table": "learner_capabilities",
+      "related_table": "courses",
       "local_key": "id",
       "foreign_key": "capability_id",
-      "description": "One master capability maps to many learner capability records"
+      "description": "One capability maps to many courses — one per proficiency level (L1 through L5)"
     }
   ],
 
-  "note": "This is a simplified capability master table with no direct role/domain linkage. Role mapping should be handled separately (e.g., via mapping tables).",
+  "note": "domain_id is intentionally denormalized from roles.domain_id to avoid joins when filtering capabilities by domain. It must always stay consistent with the role's domain.",
 
   "sample_records": [
     {
       "id": "cap-uuid-001",
-      "capability_id": "SE-CAP-01",
       "capability_library": "Software Development",
       "capability": "Backend Service Development",
       "industry_outcome": "Build maintainable backend services that implement business logic correctly and follow team coding standards.",
@@ -110,7 +110,6 @@
     },
     {
       "id": "cap-uuid-002",
-      "capability_id": "SE-CAP-01",
       "capability_library": "Software Development",
       "capability": "Full-Stack Application Coding",
       "industry_outcome": "Build frontend and backend code components that work together to deliver usable application features.",
@@ -121,7 +120,6 @@
     },
     {
       "id": "cap-uuid-003",
-      "capability_id": "SE-CAP-02",
       "capability_library": "API Engineering",
       "capability": "API Design & Implementation",
       "industry_outcome": "Develop REST APIs that expose application functionality and follow consistent request/response patterns.",
@@ -132,7 +130,6 @@
     },
     {
       "id": "cap-uuid-004",
-      "capability_id": "SE-CAP-08",
       "capability_library": "Observability Basics",
       "capability": "Debugging & Observability",
       "industry_outcome": "Diagnose and resolve runtime issues using logs and debugging tools.",

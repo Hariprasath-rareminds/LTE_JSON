@@ -1,6 +1,6 @@
 ﻿{
   "table_name": "learning_path_courses",
-  "description": "Ordered course assignments within a learning path. One row per course per path. Each row represents one level transition for one capability gap. Courses are unlocked sequentially — the first course for each gap is immediately available, subsequent courses for the same gap unlock only after the previous course artifact is approved.",
+  "description": "Ordered course assignments within a learning path, enriched with capability gap and role readiness data. One row per learner + course + path. Each row represents one level transition for one capability gap — tracking both the course progression state and the gap analysis that drove the course assignment. This is the single source of truth for course sequencing, gap engine output, and recommendation priority.",
   "primary_key": "id",
 
   "fields": [
@@ -13,6 +13,14 @@
       "example": "lpc-001"
     },
     {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner this course assignment belongs to",
+      "example": "learner-001"
+    },
+    {
       "name": "learning_path_id",
       "type": "uuid",
       "required": true,
@@ -21,13 +29,37 @@
       "example": "path-001"
     },
     {
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id",
+      "description": "The role this course is being assigned against. Each learning path targets one role.",
+      "example": "role-001"
+    },
+    {
       "name": "course_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "courses.course_id",
-      "description": "Course from the course catalog",
-      "example": "SE-BE-OBS-01"
+      "description": "Course from the course catalog. Each course maps to one capability at one proficiency level.",
+      "example": "crs-ta-l1"
     },
+
+    {
+      "name": "sequence_no",
+      "type": "integer",
+      "required": true,
+      "description": "Overall display order of this course within the full learning path (1-based across all capabilities)",
+      "example": 1
+    },
+    {
+      "name": "capability_sequence_no",
+      "type": "integer",
+      "required": true,
+      "description": "Order of this course within the same capability gap. e.g. for a gap of 3, this is 1, 2, or 3.",
+      "example": 1
+    },
+
     {
       "name": "from_level",
       "type": "integer",
@@ -44,20 +76,78 @@
       "description": "Capability level the learner reaches when this course artifact is approved. Denormalized from courses.to_level.",
       "example": 1
     },
+
     {
-      "name": "sequence_no",
+      "name": "current_score",
       "type": "integer",
       "required": true,
-      "description": "Overall display order of this course within the full learning path (1-based across all capabilities)",
+      "description": "Raw capability score 0–100 at the time this course was assigned",
+      "example": 20
+    },
+    {
+      "name": "current_level",
+      "type": "integer",
+      "required": true,
+      "enum": [0, 1, 2, 3, 4],
+      "description": "Learner's current capability level on the L0–L4 scale at assignment time. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
       "example": 1
     },
     {
-      "name": "capability_sequence_no",
+      "name": "required_level",
       "type": "integer",
       "required": true,
-      "description": "Order of this course within the same capability gap. e.g. for a gap of 3, this is 1, 2, or 3.",
-      "example": 1
+      "enum": [0, 1, 2, 3, 4],
+      "description": "Minimum capability level required by the role. Sourced from role_capability_map.required_level at the time the learning path was generated.",
+      "example": 3
     },
+    {
+      "name": "gap",
+      "type": "integer",
+      "required": true,
+      "description": "Computed gap = required_level - current_level. Positive means learner needs improvement. Zero or negative means no gap.",
+      "example": 2
+    },
+    {
+      "name": "has_gap",
+      "type": "boolean",
+      "required": true,
+      "default": false,
+      "description": "True if gap > 0. Used by the recommendation engine to identify capabilities needing courses.",
+      "example": true
+    },
+    {
+      "name": "gap_score",
+      "type": "integer",
+      "required": true,
+      "description": "Gap expressed as a 0–100 score for path prioritization and ranking. Derived from current_score vs target score.",
+      "example": 60
+    },
+    {
+      "name": "priority_band",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["A", "B"],
+      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, null = no gap or not yet prioritized.",
+      "example": "A"
+    },
+    {
+      "name": "why_needed",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Why this capability is needed for the learner's target role. Populated for priority A and B rows.",
+      "example": "Monitor production systems and diagnose runtime issues"
+    },
+    {
+      "name": "how_to_build",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "How the learner should build this capability. Populated for priority A and B rows.",
+      "example": "Complete observability course with logging, debugging, and monitoring tools"
+    },
+
     {
       "name": "status",
       "type": "varchar",
@@ -74,7 +164,7 @@
       "nullable": true,
       "enum": ["Qualified", "Pro"],
       "default": null,
-      "description": "Badge earned by the learner upon completing this course. Null until the course is completed and a badge is awarded. 'Qualified' is awarded on standard completion; 'Pro' on exceptional performance.",
+      "description": "Badge earned by the learner upon completing this course. Null until completed. 'Qualified' on standard completion; 'Pro' on exceptional performance.",
       "example": "Qualified"
     },
     {
@@ -82,7 +172,7 @@
       "type": "integer",
       "required": true,
       "default": 0,
-      "description": "Course completion percentage 0-100 based on module progress",
+      "description": "Course completion percentage 0–100 based on module progress",
       "example": 17
     },
     {
@@ -117,73 +207,147 @@
 
   "constraints": [
     {
+      "name": "chk_current_level_range",
+      "type": "check",
+      "rule": "current_level >= 0 AND current_level <= 4",
+      "description": "current_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_required_level_range",
+      "type": "check",
+      "rule": "required_level >= 0 AND required_level <= 4",
+      "description": "required_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_gap_computed",
+      "type": "check",
+      "rule": "gap = required_level - current_level",
+      "description": "gap must always equal required_level - current_level"
+    },
+    {
+      "name": "chk_has_gap_consistent",
+      "type": "check",
+      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
+      "description": "has_gap must be true when gap > 0 and false otherwise"
+    },
+    {
       "name": "chk_badge_only_on_completion",
       "type": "check",
       "rule": "badge IS NULL OR status = 'completed'",
-      "description": "A badge can only be awarded when the course status is completed."
+      "description": "A badge can only be awarded when the course status is completed"
     }
   ],
 
   "unique_constraints": [
     {
-      "name": "uq_lpc_path_course",
-      "columns": ["learning_path_id", "course_id"],
-      "description": "One course per path"
-    },
-    {
-      "name": "uq_lpc_path_capability_level",
-      "columns": ["learning_path_id", "from_level"],
-      "description": "One level transition per capability per path — prevents duplicate course assignment for the same gap step"
+      "name": "uq_lpc_learner_path_course",
+      "columns": ["learner_id", "learning_path_id", "course_id"],
+      "description": "One course assignment per learner per path — prevents duplicates"
     }
   ],
 
   "indexes": [
     {
-      "name": "idx_lpc_learning_path_id",
-      "columns": ["learning_path_id"]
+      "name": "idx_lpc_learner_path_role",
+      "columns": ["learner_id", "learning_path_id", "role_id"],
+      "type": "composite",
+      "description": "Fetch all course assignments for a learner scoped to a specific path and role"
     },
     {
-      "name": "idx_lpc_course_id",
-      "columns": ["course_id"]
+      "name": "idx_lpc_learner_has_gap",
+      "columns": ["learner_id", "has_gap"],
+      "type": "composite",
+      "description": "Fetch all courses where learner has a gap — primary input to recommendation engine"
+    },
+    {
+      "name": "idx_lpc_learner_priority_band",
+      "columns": ["learner_id", "priority_band"],
+      "type": "composite",
+      "description": "Fetch all priority A or B course assignments for a learner"
     },
     {
       "name": "idx_lpc_status",
-      "columns": ["status"]
+      "columns": ["learner_id", "status"],
+      "type": "composite",
+      "description": "Filter course assignments by progress status for a learner"
     },
     {
       "name": "idx_lpc_badge",
       "columns": ["learning_path_id", "badge"],
       "type": "composite",
       "description": "Fast fetch of all badge-earned courses in a path for dashboard/profile display"
+    },
+    {
+      "name": "idx_lpc_course_id",
+      "columns": ["course_id"],
+      "description": "Look up all learner assignments for a given course"
+    },
+    {
+      "name": "idx_lpc_role_course",
+      "columns": ["role_id", "course_id"],
+      "type": "composite",
+      "description": "Look up required level for a course within a role"
     }
   ],
 
   "relationships": [
     {
       "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id",
+      "description": "Each course assignment belongs to one learner"
+    },
+    {
+      "type": "many_to_one",
       "related_table": "learning_paths",
       "local_key": "learning_path_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each course assignment is scoped to one learning path"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each course assignment is assessed against one role"
     },
     {
       "type": "many_to_one",
       "related_table": "courses",
       "local_key": "course_id",
-      "foreign_key": "course_id"
+      "foreign_key": "course_id",
+      "description": "Each row references a course which carries capability_id, level_no, and all capability metadata"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "role_capability_map",
+      "local_key": ["role_id", "course_id"],
+      "foreign_key": ["role_id", "course_id"],
+      "description": "required_level is sourced from role_capability_map at path generation time"
     }
   ],
-
-
 
   "sample_records": [
     {
       "id": "lpc-001",
+      "learner_id": "learner-001",
       "learning_path_id": "path-001",
+      "role_id": "role-001",
       "course_id": "SE-BE-OBS-01",
-      "from_level": 0,
-      "to_level": 1,
       "sequence_no": 1,
       "capability_sequence_no": 1,
+      "from_level": 0,
+      "to_level": 1,
+      "current_score": 20,
+      "current_level": 1,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 60,
+      "priority_band": "A",
+      "why_needed": "Monitor production systems and diagnose runtime issues",
+      "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
       "status": "completed",
       "badge": "Qualified",
       "completion_percentage": 100,
@@ -194,12 +358,23 @@
     },
     {
       "id": "lpc-002",
+      "learner_id": "learner-001",
       "learning_path_id": "path-001",
+      "role_id": "role-001",
       "course_id": "SE-BE-OBS-02",
-      "from_level": 1,
-      "to_level": 2,
       "sequence_no": 2,
       "capability_sequence_no": 2,
+      "from_level": 1,
+      "to_level": 2,
+      "current_score": 20,
+      "current_level": 1,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 60,
+      "priority_band": "A",
+      "why_needed": "Monitor production systems and diagnose runtime issues",
+      "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
       "status": "in_progress",
       "badge": null,
       "completion_percentage": 17,
@@ -207,6 +382,33 @@
       "completed_at": null,
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-02-02T00:00:00Z"
+    },
+    {
+      "id": "lpc-003",
+      "learner_id": "learner-001",
+      "learning_path_id": "path-001",
+      "role_id": "role-001",
+      "course_id": "SE-BE-API-01",
+      "sequence_no": 3,
+      "capability_sequence_no": 1,
+      "from_level": 0,
+      "to_level": 1,
+      "current_score": 40,
+      "current_level": 1,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 40,
+      "priority_band": "A",
+      "why_needed": "Build scalable, efficient backend services",
+      "how_to_build": "Learn REST/GraphQL principles and database indexing strategies",
+      "status": "not_started",
+      "badge": null,
+      "completion_percentage": 0,
+      "started_at": null,
+      "completed_at": null,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
     }
   ]
 }

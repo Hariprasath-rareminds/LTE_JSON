@@ -1,6 +1,7 @@
+
 {
   "table_name": "learner_capabilities",
-  "description": "Per-learner capability scores, gap analysis, and role readiness data. One row per learner + assessment + learning path + role + capability. This is the single source of truth for the gap engine — current level, required level, gap, and course recommendation priority all live here. skill_gap_capabilities has been merged into this table.",
+  "description": "Per-learner capability scores, gap analysis, and role readiness data. One row per learner + capability + learning path + role. This is the single source of truth for the gap engine — current level, required level, gap, and recommendation priority all live here.",
   "primary_key": "id",
 
   "fields": [
@@ -21,19 +22,19 @@
       "example": "learner-001"
     },
     {
-      "name": "assessment_id",
+      "name": "capability_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "assessments.id",
-      "description": "Assessment that generated this capability score",
-      "example": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f"
+      "foreign_key": "capabilities.id",
+      "description": "Capability associated with this record. This is the core unit used for gap analysis and progression.",
+      "example": "cap-001"
     },
     {
       "name": "learning_path_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "learning_paths.id",
-      "description": "The learning path this capability record is scoped to. Replaces learning_track_id — path is the actionable unit a learner works through.",
+      "description": "The learning path this capability record is scoped to.",
       "example": "path-001"
     },
     {
@@ -41,22 +42,14 @@
       "type": "uuid",
       "required": true,
       "foreign_key": "roles.id",
-      "description": "The role this capability is being assessed against. Each learning path targets one role.",
+      "description": "The role this capability is being assessed against.",
       "example": "role-001"
-    },
-    {
-      "name": "capability_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The specific capability being assessed. References capabilities_master.id.",
-      "example": "cap-uuid-004"
     },
     {
       "name": "current_score",
       "type": "integer",
       "required": true,
-      "description": "Raw capability score 0–100 derived from assessment",
+      "description": "Raw capability score 0–100 derived from evaluation or assessments",
       "example": 20
     },
     {
@@ -64,7 +57,7 @@
       "type": "integer",
       "required": true,
       "enum": [0, 1, 2, 3, 4],
-      "description": "Learner's current capability level on the L0–L4 scale derived from assessment. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
+      "description": "Learner's current capability level on the L0–L4 scale",
       "example": 1
     },
     {
@@ -72,14 +65,14 @@
       "type": "integer",
       "required": true,
       "enum": [0, 1, 2, 3, 4],
-      "description": "Minimum capability level required by the role. Sourced from role_capability_map.required_level at the time the learning path was generated.",
+      "description": "Minimum capability level required by the role",
       "example": 3
     },
     {
       "name": "gap",
       "type": "integer",
       "required": true,
-      "description": "Computed gap = required_level - current_level. Positive means learner needs improvement. Zero or negative means no gap.",
+      "description": "Computed gap = required_level - current_level",
       "example": 2
     },
     {
@@ -87,14 +80,14 @@
       "type": "boolean",
       "required": true,
       "default": false,
-      "description": "True if gap > 0. Used by the recommendation engine to find which capabilities need courses assigned.",
+      "description": "True if gap > 0",
       "example": true
     },
     {
       "name": "gap_score",
       "type": "integer",
       "required": true,
-      "description": "Gap expressed as a 0–100 score for path prioritization and ranking. Derived from current_score vs target score.",
+      "description": "Gap expressed as a 0–100 score for prioritization",
       "example": 60
     },
     {
@@ -103,7 +96,7 @@
       "required": false,
       "nullable": true,
       "enum": ["A", "B"],
-      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, null = no gap or not yet prioritized.",
+      "description": "Recommendation priority band",
       "example": "A"
     },
     {
@@ -111,7 +104,7 @@
       "type": "text",
       "required": false,
       "nullable": true,
-      "description": "Why this capability is needed for the learner's target role. Populated for priority A and B rows.",
+      "description": "Why this capability is needed",
       "example": "Monitor production systems and diagnose runtime issues"
     },
     {
@@ -119,8 +112,8 @@
       "type": "text",
       "required": false,
       "nullable": true,
-      "description": "How the learner should build this capability. Populated for priority A and B rows.",
-      "example": "Complete observability course with logging, debugging, and monitoring tools"
+      "description": "How the learner should build this capability",
+      "example": "Complete observability training with logging and monitoring tools"
     },
     {
       "name": "created_at",
@@ -142,66 +135,56 @@
     {
       "name": "chk_current_level_range",
       "type": "check",
-      "rule": "current_level >= 0 AND current_level <= 4",
-      "description": "current_level must be on the L0–L4 scale"
+      "rule": "current_level >= 0 AND current_level <= 4"
     },
     {
       "name": "chk_required_level_range",
       "type": "check",
-      "rule": "required_level >= 0 AND required_level <= 4",
-      "description": "required_level must be on the L0–L4 scale"
+      "rule": "required_level >= 0 AND required_level <= 4"
     },
     {
       "name": "chk_gap_computed",
       "type": "check",
-      "rule": "gap = required_level - current_level",
-      "description": "gap must always equal required_level - current_level"
+      "rule": "gap = required_level - current_level"
     },
     {
       "name": "chk_has_gap_consistent",
       "type": "check",
-      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
-      "description": "has_gap must be true when gap > 0 and false otherwise"
+      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)"
     }
   ],
 
   "indexes": [
     {
       "name": "idx_learner_capabilities_unique",
-      "columns": ["learner_id", "assessment_id", "learning_path_id", "role_id", "capability_id"],
+      "columns": ["learner_id", "capability_id", "learning_path_id", "role_id"],
       "type": "composite",
-      "unique": true,
-      "description": "One capability record per learner per assessment per path per role — prevents duplicates"
+      "unique": true
     },
     {
       "name": "idx_learner_capabilities_learner_path_role",
       "columns": ["learner_id", "learning_path_id", "role_id"],
-      "type": "composite",
-      "description": "Fetch all capabilities for a learner scoped to a specific path and role"
+      "type": "composite"
     },
     {
       "name": "idx_learner_capabilities_has_gap",
       "columns": ["learner_id", "has_gap"],
-      "type": "composite",
-      "description": "Fetch all capabilities where learner has a gap — primary input to course recommendation engine"
+      "type": "composite"
     },
     {
       "name": "idx_learner_capabilities_priority_band",
       "columns": ["learner_id", "priority_band"],
-      "type": "composite",
-      "description": "Fetch all priority A or B capabilities for a learner"
+      "type": "composite"
     },
     {
       "name": "idx_learner_capabilities_role_capability",
       "columns": ["role_id", "capability_id"],
-      "type": "composite",
-      "description": "Look up required level for a capability within a role"
+      "type": "composite"
     },
     {
-      "name": "idx_learner_capabilities_learner_assessment",
-      "columns": ["learner_id", "assessment_id"],
-      "type": "composite",
-      "description": "Fetch all capability scores generated from a specific assessment"
+      "name": "idx_learner_capabilities_learner_capability",
+      "columns": ["learner_id", "capability_id"],
+      "type": "composite"
     }
   ],
 
@@ -210,46 +193,40 @@
       "type": "many_to_one",
       "related_table": "learner_profiles",
       "local_key": "learner_id",
-      "foreign_key": "id",
-      "description": "Each capability record belongs to one learner"
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "capabilities",
+      "local_key": "capability_id",
+      "foreign_key": "id"
     },
     {
       "type": "many_to_one",
       "related_table": "learning_paths",
       "local_key": "learning_path_id",
-      "foreign_key": "id",
-      "description": "Each capability record is scoped to one learning path"
+      "foreign_key": "id"
     },
     {
       "type": "many_to_one",
       "related_table": "roles",
       "local_key": "role_id",
-      "foreign_key": "id",
-      "description": "Each capability record is assessed against one role"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "capabilities_master",
-      "local_key": "capability_id",
-      "foreign_key": "id",
-      "description": "Each record references a master capability definition"
+      "foreign_key": "id"
     },
     {
       "type": "many_to_one",
       "related_table": "role_capability_map",
       "local_key": ["role_id", "capability_id"],
-      "foreign_key": ["role_id", "capability_id"],
-      "description": "required_level is sourced from role_capability_map at path generation time"
+      "foreign_key": ["role_id", "capability_id"]
     }
-  ],
-
-  "sample_records": [
+  ], 
+   "sample_records": [
     {
       "id": "lc-001",
       "learner_id": "learner-001",
+      "capability_id": "cap-004",
       "learning_path_id": "path-001",
       "role_id": "role-001",
-      "capability_id": "cap-uuid-004",
       "current_score": 20,
       "current_level": 1,
       "required_level": 3,
@@ -258,17 +235,16 @@
       "gap_score": 60,
       "priority_band": "A",
       "why_needed": "Monitor production systems and diagnose runtime issues",
-      "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
+      "how_to_build": "Learn logging, debugging, and monitoring tools",
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
     },
     {
       "id": "lc-002",
       "learner_id": "learner-001",
-      
+      "capability_id": "cap-002",
       "learning_path_id": "path-001",
       "role_id": "role-001",
-      "capability_id": "cap-uuid-002",
       "current_score": 40,
       "current_level": 1,
       "required_level": 3,
@@ -276,18 +252,17 @@
       "has_gap": true,
       "gap_score": 40,
       "priority_band": "A",
-      "why_needed": "Build scalable, efficient backend services",
-      "how_to_build": "Learn REST/GraphQL principles and database indexing strategies",
+      "why_needed": "Build scalable backend systems",
+      "how_to_build": "Study APIs and database optimization",
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
     },
     {
       "id": "lc-003",
       "learner_id": "learner-001",
-  
+      "capability_id": "cap-001",
       "learning_path_id": "path-001",
       "role_id": "role-001",
-      "capability_id": "cap-uuid-001",
       "current_score": 50,
       "current_level": 2,
       "required_level": 2,
@@ -302,11 +277,10 @@
     },
     {
       "id": "lc-004",
-      "learner_id": "learner-001",
-
+      "learner_id": "learner-002",
+      "capability_id": "cap-010",
       "learning_path_id": "path-002",
       "role_id": "role-002",
-      "capability_id": "cap-uuid-011",
       "current_score": 40,
       "current_level": 1,
       "required_level": 2,
@@ -314,17 +288,17 @@
       "has_gap": true,
       "gap_score": 20,
       "priority_band": "B",
-      "why_needed": "Ensure code reliability and maintainability",
-      "how_to_build": "Master unit testing, integration testing, and CI/CD practices",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
+      "why_needed": "Ensure code reliability",
+      "how_to_build": "Practice testing and CI/CD",
+      "created_at": "2024-02-01T00:00:00Z",
+      "updated_at": "2024-02-01T00:00:00Z"
     },
     {
       "id": "lc-005",
       "learner_id": "learner-002",
+      "capability_id": "cap-003",
       "learning_path_id": "path-003",
       "role_id": "role-004",
-      "capability_id": "cap-uuid-003",
       "current_score": 50,
       "current_level": 2,
       "required_level": 4,
@@ -332,46 +306,8 @@
       "has_gap": true,
       "gap_score": 50,
       "priority_band": "A",
-      "why_needed": "Build predictive models for business insights",
-      "how_to_build": "Complete ML engineering courses with real-world projects",
-      "created_at": "2024-02-15T00:00:00Z",
-      "updated_at": "2024-02-15T00:00:00Z"
-    },
-    {
-      "id": "lc-006",
-      "learner_id": "learner-002",
-   
-      "learning_path_id": "path-003",
-      "role_id": "role-004",
-      "capability_id": "cap-uuid-005",
-      "current_score": 60,
-      "current_level": 2,
-      "required_level": 4,
-      "gap": 2,
-      "has_gap": true,
-      "gap_score": 40,
-      "priority_band": "A",
-      "why_needed": "Build scalable data pipelines",
-      "how_to_build": "Learn ETL frameworks and distributed computing",
-      "created_at": "2024-02-15T00:00:00Z",
-      "updated_at": "2024-02-15T00:00:00Z"
-    },
-    {
-      "id": "lc-007",
-      "learner_id": "learner-002",
-   
-      "learning_path_id": "path-004",
-      "role_id": "role-005",
-      "capability_id": "cap-uuid-009",
-      "current_score": 50,
-      "current_level": 2,
-      "required_level": 3,
-      "gap": 1,
-      "has_gap": true,
-      "gap_score": 50,
-      "priority_band": "B",
-      "why_needed": "Validate data-driven decisions with statistical rigor",
-      "how_to_build": "Study advanced statistics and experimental design",
+      "why_needed": "Build ML models",
+      "how_to_build": "Work on real ML projects",
       "created_at": "2024-02-15T00:00:00Z",
       "updated_at": "2024-02-15T00:00:00Z"
     }

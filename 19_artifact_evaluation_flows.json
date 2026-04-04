@@ -1,6 +1,6 @@
 {
   "table_name": "artifact_evaluation_flows",
-  "description": "Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission. When the final stage reaches an approved decision, the progression engine fires: learner_capabilities.current_level is incremented, the next module or course is unlocked, and XP is awarded.",
+  "description": "Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission. This table captures the status, feedback, and outcomes at each stage, as well as the overall flow status. When overall_status reaches 'approved', the progression engine is triggered to advance the learner.",
   "primary_key": "id",
 
   "fields": [

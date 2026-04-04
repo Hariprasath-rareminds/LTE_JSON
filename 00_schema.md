@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the complete database schema for the learning platform. All 24 tables are also consolidated in `00_schema.json`.
+This document describes the complete database schema for the learning platform. All 25 tables are also consolidated in `00_schema.json`.
 
 The schema covers the full learner journey: from assessment and skill gap analysis, through personalized learning path generation, course and module delivery via the 6E framework, artifact submission and evaluation, and XP-based progression.
 
@@ -15,11 +15,11 @@ The schema covers the full learner journey: from assessment and skill gap analys
 | 01 | `learner_profiles` | Core learner/student records |
 | 02 | `learning_tracks` | Track recommendations per learner from assessment |
 | 03 | `learning_paths` | Personalized learning path per learner per track |
-| 04 | `courses` | Course catalog — one capability + one level transition per course |
+| 04 | `courses` | Course catalog — one capability at one proficiency level per course |
 | 05 | `modules` | Modules within a course, delivered via the 6E framework |
 | 06 | `modules_content` | Maps modules to their 6E stages (stage containers) |
 | 07 | `learner_capabilities` | Per-learner capability scores, gap analysis, and role readiness |
-| 08 | `learning_path_courses` | Ordered course assignments within a learning path |
+| 08 | `learning_path_courses` | Ordered course assignments with gap data per learner per path |
 | 09 | `learner_module_progress` | Module-level progress header per learner per module |
 | 10 | `learner_6e_stage_progress` | Per-learner per-stage progress within a module |
 | 11 | `module_artifacts` | Practice and final artifacts defined per module |
@@ -32,10 +32,11 @@ The schema covers the full learner journey: from assessment and skill gap analys
 | 18 | `capabilities_master` | Master capability reference from Role L1 Gap Model |
 | 19 | `artifact_evaluation_flows` | AI → Staff → Industry evaluation pipeline per submission |
 | 20 | `artifact_questions` | Individual questions/tasks within a module artifact |
-| 21 | `roles` | Master list of industry roles |
+| 21 | `roles` | Master list of industry roles with career hierarchy |
 | 22 | `6e_content` | Individual content pieces within a 6E stage |
 | 23 | `artifact_submission_files` | Learner-uploaded files per question per submission |
 | 24 | `xp_events` | Append-only XP event log per learner |
+| — | `level_scale` | Global proficiency scale (L0–L5) used across all capabilities |
 
 ---
 
@@ -75,11 +76,13 @@ Personalized learning path for a learner on a chosen track. Targets one industry
 
 ### 04 · courses
 
-Course catalog. Each course covers exactly one capability and advances the learner one level (`from_level → to_level`). The recommendation engine uses `capability_id + from_level` to match a course to a learner gap.
+Course catalog. Each course covers exactly one capability at one proficiency level. Identified by `capability_id + level_no`. The recommendation engine uses this pair to match a course to a learner gap.
 
-**Key fields:** `course_id`, `course_code`, `capability_id`, `from_level`, `to_level`, `title`, `difficulty_level`, `job_pathway_role`, `domain_id`
+**Key fields:** `course_id`, `course_code`, `role_id`, `capability_id`, `capability_code`, `capability_name`, `level_id` (FK → level_scale), `level_no`, `level_code`, `level_label`, `title`, `observable_behavior`, `example_outputs`, `domain_id`, `duration_minutes`, `xp_reward`, `difficulty_level`, `course_status`
 
-**Constraint:** `to_level = from_level + 1` always. Unique on `(capability_id, from_level)`.
+**Unique constraint:** `(capability_id, level_no)` — exactly one course per capability per level.
+
+**Relationships:** → `capabilities_master`, → `roles`, → `domains`, → `level_scale`
 
 ---
 
@@ -105,29 +108,35 @@ Maps a module to its 6E stages. One row per module per stage. Acts as the stage 
 
 ### 07 · learner_capabilities
 
-Single source of truth for the gap engine. One row per learner + assessment + learning path + role + capability. Stores current level, required level, gap, priority band, and course recommendation context. `skill_gap_capabilities` has been merged into this table.
+Single source of truth for the gap engine. One row per learner + course + learning path + role. Stores current level, required level, gap, priority band, and course recommendation context.
 
-**Key fields:** `id`, `learner_id`, `assessment_id`, `learning_path_id`, `role_id`, `capability_id`, `current_level`, `required_level`, `gap`, `has_gap`, `gap_score`, `priority_band` (A/B), `why_needed`, `how_to_build`
+**Key fields:** `id`, `learner_id`, `course_id`, `learning_path_id`, `role_id`, `current_level`, `required_level`, `gap`, `has_gap`, `gap_score`, `priority_band` (A/B), `why_needed`, `how_to_build`
 
 **Level scale:** L0 = no exposure, L1 = awareness, L2 = working knowledge, L3 = applied skill, L4 = mastery.
+
+**Unique constraint:** one record per `(learner_id, course_id, learning_path_id, role_id)`.
 
 ---
 
 ### 08 · learning_path_courses
 
-Ordered course assignments within a learning path. One row per course per path. Courses unlock sequentially — the first course per capability gap is immediately available; subsequent courses unlock only after the previous artifact is approved.
+Ordered course assignments within a learning path, enriched with capability gap and role readiness data. One row per learner + course + path. Single source of truth for course sequencing, gap engine output, and recommendation priority.
 
-**Key fields:** `id`, `learning_path_id`, `course_id`, `capability_id`, `from_level`, `to_level`, `sequence_no`, `capability_sequence_no`, `is_locked`, `unlocks_after_submission_id`, `status`, `completion_percentage`
+**Key fields:** `id`, `learner_id`, `learning_path_id`, `role_id`, `course_id`, `sequence_no`, `capability_sequence_no`, `from_level`, `to_level`, `current_level`, `required_level`, `gap`, `has_gap`, `gap_score`, `priority_band` (A/B), `why_needed`, `how_to_build`, `status`, `badge` (Qualified/Pro), `completion_percentage`
+
+**Unique constraint:** one record per `(learner_id, learning_path_id, course_id)`.
+
+**Note:** no `is_locked` field — course sequencing is controlled by `capability_sequence_no` and `status`.
 
 ---
 
 ### 09 · learner_module_progress
 
-Module-level progress header per learner per module. Tracks overall module status, current 6E stage, stages completed count, artifact submission state, and lock state.
+Module-level progress header per learner per module. Tracks overall module status, current 6E stage, stages completed count, and artifact submission state.
 
 **Key fields:** `id`, `learner_id`, `learning_path_id`, `course_id`, `module_id`, `module_status`, `current_stage`, `stages_completed`, `completion_percentage`, `artifact_submitted`, `artifact_approval_status`
 
-**Progression trigger:** when `artifact_approval_status` is set to `approved`, the next module unlocks.
+**Progression trigger:** when `artifact_approval_status` → `approved`, the next course in `learning_path_courses` is unlocked.
 
 ---
 
@@ -201,25 +210,25 @@ Master domain taxonomy derived from the Role L1 model. Used to classify courses 
 
 **Key fields:** `id`, `code`, `name`, `industry`, `is_active`
 
-**Examples:** Backend Engineering, Frontend Engineering
+**Relationships:** one domain → many roles
 
 ---
 
 ### 18 · capabilities_master
 
-Master capability reference table. Each row is one unique capability sourced from the client's Role L1 Gap Model. `capability_id` is not unique alone — the same ID groups multiple named capabilities under one library domain.
+Master capability reference table. Each row is one unique capability sourced from the client's Role L1 Gap Model. `capability_id` (varchar) is the client canonical code — not unique alone, as the same code groups multiple named capabilities under one library domain.
 
-**Key fields:** `id`, `capability_id`, `capability_library`, `capability`, `role_id`, `domain_id`, `industry_outcome`, `capability_gap`, `skill_gap_learning_outcomes`, `gap_review_status`
+**Key fields:** `id`, `capability_id`, `capability_library`, `capability`, `industry_outcome`, `academic_coverage`, `is_active`
 
 **Unique constraint:** `(capability_id, capability)`.
 
-**Note:** `domain_id` is intentionally denormalized from `roles.domain_id` for fast filtering without joins.
+**Relationships:** → `roles` (each capability belongs to one role), one_to_many → `courses` (one capability maps to many courses, one per level)
 
 ---
 
 ### 19 · artifact_evaluation_flows
 
-Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission. When the final stage reaches `approved`, the progression engine fires: capability level is incremented, next module/course unlocks, and XP is awarded.
+Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission. When the final stage reaches `approved`, the progression engine fires: capability level is incremented, next course unlocks, and XP is awarded.
 
 **Key fields:** `id`, `submission_id`, `stage` (ai/staff/industry), `stage_order`, `status`, `evaluated_by`, `score`, `feedback`, `improvements`, `decision`, `overall_status`, `is_current_stage`, `progression_triggered`
 
@@ -241,11 +250,11 @@ Individual questions or tasks within a module artifact. One artifact can have mu
 
 ### 21 · roles
 
-Master list of industry roles. Each role maps to capabilities learners in that role are expected to develop.
+Master list of industry roles with career hierarchy. Each role maps to capabilities learners in that role are expected to develop. Roles are ordered by `role_order` and linked via `next_role_id` for career progression.
 
-**Key fields:** `id`, `domain_id`, `name`, `description`, `is_active`
+**Key fields:** `id`, `domain_id`, `name`, `role_order`, `industry`, `description`, `next_role_id` (self-referential, nullable), `is_active`
 
-**Examples:** Backend Engineer, Full-Stack Engineer, DevOps Engineer
+**Relationships:** → `domains`, self-referential → `roles` (next role in hierarchy), one_to_many → `capabilities_master`
 
 ---
 
@@ -271,11 +280,29 @@ Stores learner-uploaded solution files for each question within a submission att
 
 Append-only log of every XP-earning action for a learner. Total XP is derived by summing `xp_awarded` for a learner. Written by the progression engine.
 
-**Key fields:** `id`, `learner_id`, `source_type`, `source_id`, `xp_awarded`, `capability_id` (nullable), `earned_at`
+**Key fields:** `id`, `learner_id`, `source_type`, `source_id`, `xp_awarded`, `module_id` (nullable), `earned_at`
 
 **source_type values:** `stage_completed` (10 XP), `artifact_approved` (50 XP), `course_completed` (100 XP)
 
 **Idempotency:** before inserting, check `WHERE source_id = :id AND source_type = :type` to prevent double XP on retry.
+
+---
+
+### level_scale
+
+Global proficiency scale used across all capabilities. Defines 6 levels (L0–L5) with generic behavioral definitions. Referenced by `courses.level_id`.
+
+**Key fields:** `id`, `level_no` (0–5), `level_code` (L0–L5), `level_label`, `generic_definition`
+
+**Level definitions:**
+- L0 — No exposure
+- L1 — Basic awareness
+- L2 — Working knowledge
+- L3 — Applied skill
+- L4 — Mastery
+- L5 — Strategic design and leadership
+
+**Unique constraints:** `level_no`, `level_code`
 
 ---
 
@@ -285,23 +312,25 @@ Append-only log of every XP-earning action for a learner. Total XP is derived by
 learner_profiles
   ├── learning_tracks ──── learning_track_evidence
   ├── learning_paths
-  │     ├── learner_capabilities (gap engine source of truth)
-  │     └── learning_path_courses
+  │     ├── learner_capabilities (gap engine — scoped per course)
+  │     └── learning_path_courses (gap + progression data per course)
   │           └── courses ──── modules
-  │                               ├── modules_content ──── 6e_content
-  │                               ├── module_artifacts
-  │                               │     ├── artifact_questions
-  │                               │     └── artifact_templates
-  │                               └── learner_module_progress
-  │                                     ├── learner_6e_stage_progress
-  │                                     └── artifact_submissions
-  │                                           ├── artifact_submission_files
-  │                                           └── artifact_evaluation_flows
+  │                 │             ├── modules_content ──── 6e_content
+  │                 │             ├── module_artifacts
+  │                 │             │     ├── artifact_questions
+  │                 │             │     └── artifact_templates
+  │                 │             └── learner_module_progress
+  │                 │                   ├── learner_6e_stage_progress
+  │                 │                   └── artifact_submissions
+  │                 │                         ├── artifact_submission_files
+  │                 │                         └── artifact_evaluation_flows
+  │                 ├── capabilities_master
+  │                 └── level_scale
   ├── skill_gap
   ├── profile_snapshot
   └── xp_events
 
-domains ──── roles ──── capabilities_master
+domains ──── roles ──── capabilities_master ──── courses
 ```
 
 ---
@@ -315,6 +344,6 @@ domains ──── roles ──── capabilities_master
    - `learner_capabilities.current_level` incremented
    - `learner_module_progress.artifact_approval_status` → `approved`, `module_status` → `completed`
    - If all modules in the course are complete → `learning_path_courses.status` → `completed`
-   - Next course in the capability gap sequence unlocked: `learning_path_courses.is_locked = false` on the next `learning_path_courses` row
-   - XP awarded (`xp_events` insert)
+   - Next course in the capability gap sequence unlocked via `learning_path_courses` (`capability_sequence_no` order)
+   - XP awarded (`xp_events` insert with `module_id`)
    - `progression_triggered = true` set on evaluation flow row

@@ -24,7 +24,7 @@
       "name": "capability_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "capabilities.id",
+      "foreign_key": "capabilities_master.id",
       "description": "Capability associated with this record. Core unit used for gap analysis and progression.",
       "example": "cap-001"
     },

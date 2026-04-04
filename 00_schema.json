@@ -92,13 +92,6 @@
       "local_key": "id",
       "foreign_key": "learner_id",
       "description": "A learner profile can have multiple recommended learning tracks"
-    },
-    {
-      "type": "one_to_many",
-      "related_table": "learner_capabilities",
-      "local_key": "id",
-      "foreign_key": "learner_id",
-      "description": "All capability scores and recommendations for this learner live in learner_capabilities"
     }
   ],
 
@@ -361,6 +354,16 @@
       "example": 42.50
     },
     {
+      "name": "badge",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["developing", "skilled", "mastery"],
+      "default": null,
+      "description": "Badge earned by the learner for this learning path. Null until a badge threshold is reached. developing = early-stage progress, skilled = intermediate proficiency achieved, mastery = full path completed at high proficiency.",
+      "example": "skilled"
+    },
+    {
       "name": "level",
       "type": "integer",
       "required": true,
@@ -432,6 +435,21 @@
     }
   ],
 
+  "constraints": [
+    {
+      "name": "chk_badge_values",
+      "type": "check",
+      "rule": "badge IN ('developing', 'skilled', 'mastery') OR badge IS NULL",
+      "description": "badge must be one of the defined enum values or null"
+    },
+    {
+      "name": "chk_badge_only_on_progress",
+      "type": "check",
+      "rule": "badge IS NULL OR status IN ('in_progress', 'completed')",
+      "description": "A badge can only be awarded once the path has been started"
+    }
+  ],
+
   "indexes": [
     {
       "name": "idx_learning_paths_learner_track",
@@ -472,6 +490,12 @@
       "name": "idx_learning_paths_level",
       "columns": ["level"],
       "description": "Filter learning paths by difficulty level (1–5)"
+    },
+    {
+      "name": "idx_learning_paths_learner_badge",
+      "columns": ["learner_id", "badge"],
+      "type": "composite",
+      "description": "Fetch all badge-earned paths for a learner for dashboard and profile display"
     }
   ],
 
@@ -511,13 +535,14 @@
     }
   ],
 
-  "learning_paths": [
+  "sample_records": [
     {
       "id": "path-001",
       "learning_track_id": "track-001",
       "learner_id": "learner-001",
       "role_id": "role-001",
       "role_readiness_percentage": 65.50,
+      "badge": "skilled",
       "level": 1,
       "status": "in_progress",
       "is_active": true,
@@ -527,12 +552,46 @@
       "completed_at": null,
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-15T00:00:00Z"
+    },
+    {
+      "id": "path-002",
+      "learning_track_id": "track-002",
+      "learner_id": "learner-002",
+      "role_id": "role-002",
+      "role_readiness_percentage": 100.00,
+      "badge": "mastery",
+      "level": 3,
+      "status": "completed",
+      "is_active": false,
+      "version_no": 1,
+      "is_latest": true,
+      "started_at": "2024-02-01T00:00:00Z",
+      "completed_at": "2024-05-01T00:00:00Z",
+      "created_at": "2024-02-01T00:00:00Z",
+      "updated_at": "2024-05-01T00:00:00Z"
+    },
+    {
+      "id": "path-003",
+      "learning_track_id": "track-003",
+      "learner_id": "learner-003",
+      "role_id": "role-003",
+      "role_readiness_percentage": 15.00,
+      "badge": null,
+      "level": 2,
+      "status": "in_progress",
+      "is_active": true,
+      "version_no": 1,
+      "is_latest": true,
+      "started_at": "2024-03-10T00:00:00Z",
+      "completed_at": null,
+      "created_at": "2024-03-10T00:00:00Z",
+      "updated_at": "2024-03-10T00:00:00Z"
     }
   ]
 },
 {
   "table_name": "courses",
-  "description": "Course catalog. Each course covers exactly one capability and moves the learner from one level to the next (from_level â†’ to_level). This is the core rule: one capability + one level transition = one course. The recommendation engine uses capability_id + from_level to match a course to a learner gap.",
+  "description": "Course catalog where each course represents one capability at one specific proficiency level.",
   "primary_key": "course_id",
 
   "fields": [
@@ -540,273 +599,223 @@
       "name": "course_id",
       "type": "uuid",
       "required": true,
-      "primary_key": true,
-      "description": "Unique course identifier",
-      "example": "SE-BE-OBS-01"
+      "primary_key": true
     },
     {
       "name": "course_code",
       "type": "varchar",
       "required": true,
-      "unique": true,
-      "description": "Human-readable course code",
-      "example": "BE-OBS-101"
+      "unique": true
+    },
+    {
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id"
     },
     {
       "name": "capability_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The single capability this course develops. Every course targets exactly one capability.",
-      "example": "cap-uuid-004"
+      "foreign_key": "capabilities_master.id"
     },
     {
-      "name": "from_level",
-      "type": "integer",
-      "required": true,
-      "enum": [0, 1, 2, 3],
-      "description": "The learner's capability level before taking this course. The recommendation engine matches this against skill_gap_capabilities.current_level.",
-      "example": 0
+      "name": "capability_code",
+      "type": "varchar",
+      "required": true
     },
     {
-      "name": "to_level",
+      "name": "capability_name",
+      "type": "varchar",
+      "required": true
+    },
+
+    {
+      "name": "level_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "level_scale.id",
+      "description": "References the level using UUID (normalized FK)"
+    },
+
+    {
+      "name": "level_no",
       "type": "integer",
       "required": true,
-      "enum": [1, 2, 3, 4],
-      "description": "The capability level the learner reaches upon course completion and artifact approval. Always from_level + 1.",
-      "example": 1
+      "enum": [1, 2, 3, 4, 5],
+      "description": "Numeric level for ordering and business logic"
+    },
+    {
+      "name": "level_code",
+      "type": "varchar",
+      "required": true
+    },
+    {
+      "name": "level_label",
+      "type": "varchar",
+      "required": true
     },
     {
       "name": "title",
       "type": "varchar",
-      "required": true,
-      "description": "Course title",
-      "example": "Debugging & Observability for Backend Systems"
+      "required": true
     },
     {
       "name": "description",
       "type": "text",
-      "required": true,
-      "description": "Course summary",
-      "example": "Learn how to debug and monitor backend systems for better performance and stability."
+      "required": true
     },
     {
-      "name": "thumbnail_url",
-      "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "description": "Course thumbnail image URL",
-      "example": "https://example.com/course-thumbnail.jpg"
+      "name": "observable_behavior",
+      "type": "text",
+      "required": true
     },
     {
-      "name": "job_pathway_role",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "roles.id",
-      "description": "Primary job role this course supports",
-      "example": "role-001"
+      "name": "example_outputs",
+      "type": "text",
+      "required": true
     },
     {
       "name": "domain_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "domains.id",
-      "description": "Domain classification for this course",
-      "example": "dom-001"
+      "foreign_key": "domains.id"
     },
     {
-      "name": "duration",
-      "type": "varchar",
-      "required": true,
-      "description": "Estimated duration to complete",
-      "example": "45 hours"
+      "name": "duration_minutes",
+      "type": "integer",
+      "required": true
+    },
+    {
+      "name": "xp_reward",
+      "type": "integer",
+      "required": true
     },
     {
       "name": "difficulty_level",
       "type": "varchar",
       "required": true,
-      "enum": ["beginner", "foundation", "intermediate", "advanced", "expert"],
-      "description": "Human-readable difficulty label. Must be consistent with from_level.",
-      "example": "beginner"
+      "enum": ["beginner", "foundation", "intermediate", "advanced", "expert"]
     },
     {
-      "name": "certification_value",
+      "name": "thumbnail_url",
       "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "description": "Primary certification outcome",
-      "example": "System debugging"
+      "nullable": true
     },
     {
       "name": "is_active",
       "type": "boolean",
-      "required": true,
-      "default": true,
-      "description": "Whether the course is active in catalog",
-      "example": true
-    },
-    {
-      "name": "version_no",
-      "type": "integer",
-      "required": true,
-      "default": 1,
-      "description": "Content version number",
-      "example": 1
+      "default": true
     },
     {
       "name": "is_published",
       "type": "boolean",
-      "required": true,
-      "default": true,
-      "description": "Whether this course is published for learner access",
-      "example": true
+      "default": true
+    },
+    {
+      "name": "version_no",
+      "type": "integer",
+      "default": 1
+    },
+    {
+      "name": "course_status",
+      "type": "varchar",
+      "enum": ["published", "draft", "archived"]
     },
     {
       "name": "created_at",
       "type": "timestamp",
-      "required": true,
-      "example": "2024-01-01T00:00:00Z"
+      "required": true
     },
     {
       "name": "updated_at",
       "type": "timestamp",
-      "required": true,
-      "example": "2024-01-01T00:00:00Z"
+      "required": true
     }
   ],
 
   "constraints": [
     {
-      "name": "chk_level_transition",
+      "name": "chk_level_no_range",
       "type": "check",
-      "rule": "to_level = from_level + 1",
-      "description": "A course always advances exactly one level. from_level 0 â†’ to_level 1, from_level 1 â†’ to_level 2, etc."
-    },
-    {
-      "name": "chk_from_level_max",
-      "type": "check",
-      "rule": "from_level <= 3",
-      "description": "from_level cannot be 4 â€” there is no level above L4 to advance to."
+      "rule": "level_no BETWEEN 1 AND 5"
     }
   ],
 
   "unique_constraints": [
     {
       "name": "uq_course_capability_level",
-      "columns": ["capability_id", "from_level"],
-      "description": "Exactly one course per capability per level transition. The recommendation engine relies on this to return exactly one course per gap."
+      "columns": ["capability_id", "level_no"]
+    },
+    {
+      "name": "uq_course_code",
+      "columns": ["course_code"]
     }
   ],
 
   "indexes": [
     {
-      "name": "idx_courses_course_code",
-      "columns": ["course_code"],
+      "name": "idx_courses_capability_level",
+      "columns": ["capability_id", "level_no"],
       "type": "unique"
     },
     {
-      "name": "idx_courses_capability_from_level",
-      "columns": ["capability_id", "from_level"],
-      "type": "composite",
-      "unique": true,
-      "description": "Primary lookup for the recommendation engine: given a capability gap, find the one course to recommend"
+      "name": "idx_courses_role_id",
+      "columns": ["role_id"]
     },
     {
-      "name": "idx_courses_role",
-      "columns": ["job_pathway_role"],
-      "description": "Find all courses for a specific role"
-    },
-    {
-      "name": "idx_courses_domain_id",
-      "columns": ["domain_id"]
-    },
-    {
-      "name": "idx_courses_difficulty_level",
-      "columns": ["difficulty_level"]
-    },
-    {
-      "name": "idx_courses_is_active",
-      "columns": ["is_active"]
-    },
-    {
-      "name": "idx_courses_is_published",
-      "columns": ["is_published"]
+      "name": "idx_courses_level_id",
+      "columns": ["level_id"],
+      "description": "Join optimization with level_scale"
     }
   ],
 
   "relationships": [
     {
       "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
       "related_table": "capabilities_master",
       "local_key": "capability_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "level_scale",
+      "local_key": "level_id",
       "foreign_key": "id",
-      "description": "Each course targets exactly one capability"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "roles",
-      "local_key": "job_pathway_role",
-      "foreign_key": "id"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "domains",
-      "local_key": "domain_id",
-      "foreign_key": "id"
-    },
-    {
-      "type": "one_to_many",
-      "related_table": "modules",
-      "local_key": "course_id",
-      "foreign_key": "course_id",
-      "description": "One course has multiple modules delivered via the 6E framework"
+      "description": "Normalized FK to level_scale"
     }
-  ],
-
-  "notes": [
-    "Recommendation query: SELECT course_id FROM courses WHERE capability_id = :cap AND from_level = :current_level AND is_active = true AND is_published = true LIMIT 1",
-    "If gap > 1 (e.g. current_level=0, required_level=3), the engine recommends 3 courses in sequence: L0â†’L1, then L1â†’L2, then L2â†’L3. Only the first unlocks immediately.",
-    "The unique constraint on (capability_id, from_level) guarantees the engine always returns exactly one course."
   ],
 
   "sample_records": [
     {
-      "course_id": "SE-BE-OBS-01",
-      "course_code": "BE-OBS-101",
-      "capability_id": "cap-uuid-004",
-      "from_level": 0,
-      "to_level": 1,
-      "title": "Debugging & Observability for Backend Systems",
-      "description": "Learn how to debug and monitor backend systems for better performance and stability.",
-      "thumbnail_url": "https://example.com/course-thumbnail.jpg",
-      "job_pathway_role": "role-001",
-      "domain_id": "dom-008",
-      "duration": "45 hours",
+      "course_id": "crs-ta-l1",
+      "course_code": "TA_L1",
+      "role_id": "role-hr-intern",
+      "capability_id": "cap-uuid-ta",
+      "capability_code": "TA",
+      "capability_name": "Talent Acquisition",
+      "level_id": "lvl-uuid-001",
+      "level_no": 1,
+      "level_code": "L1",
+      "level_label": "Basic awareness",
+      "title": "Talent Acquisition – Basic Awareness",
+      "description": "Develops foundational awareness of hiring stages.",
+      "observable_behavior": "Understands hiring stages and supports sourcing.",
+      "example_outputs": "Resume collection, scheduling support.",
+      "domain_id": "dom-hr",
+      "duration_minutes": 120,
+      "xp_reward": 100,
       "difficulty_level": "beginner",
-      "certification_value": "System debugging",
       "is_active": true,
-      "version_no": 1,
       "is_published": true,
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "course_id": "SE-BE-OBS-02",
-      "course_code": "BE-OBS-201",
-      "capability_id": "cap-uuid-004",
-      "from_level": 1,
-      "to_level": 2,
-      "title": "Advanced Observability Patterns",
-      "description": "Build production-grade observability pipelines with distributed tracing and alert design.",
-      "thumbnail_url": null,
-      "job_pathway_role": "role-001",
-      "domain_id": "dom-008",
-      "duration": "40 hours",
-      "difficulty_level": "intermediate",
-      "certification_value": null,
-      "is_active": true,
       "version_no": 1,
-      "is_published": true,
+      "course_status": "published",
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
     }
@@ -1296,7 +1305,7 @@
 },
 {
   "table_name": "learner_capabilities",
-  "description": "Per-learner capability scores, gap analysis, and role readiness data. One row per learner + assessment + learning path + role + capability. This is the single source of truth for the gap engine â€” current level, required level, gap, and course recommendation priority all live here. skill_gap_capabilities has been merged into this table.",
+  "description": "Per-learner capability gap analysis and role readiness data. One row per learner + capability + learning path + role. This is the single source of truth for the gap engine — required level, gap, recommendation context, and badge attainment all live here.",
   "primary_key": "id",
 
   "fields": [
@@ -1317,19 +1326,19 @@
       "example": "learner-001"
     },
     {
-      "name": "assessment_id",
+      "name": "capability_id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "assessments.id",
-      "description": "Assessment that generated this capability score",
-      "example": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f"
+      "foreign_key": "capabilities_master.id",
+      "description": "Capability associated with this record. Core unit used for gap analysis and progression.",
+      "example": "cap-001"
     },
     {
       "name": "learning_path_id",
       "type": "uuid",
       "required": true,
       "foreign_key": "learning_paths.id",
-      "description": "The learning path this capability record is scoped to. Replaces learning_track_id â€” path is the actionable unit a learner works through.",
+      "description": "The learning path this capability record is scoped to.",
       "example": "path-001"
     },
     {
@@ -1337,22 +1346,373 @@
       "type": "uuid",
       "required": true,
       "foreign_key": "roles.id",
-      "description": "The role this capability is being assessed against. Each learning path targets one role.",
+      "description": "The role this capability is being assessed against.",
       "example": "role-001"
     },
     {
-      "name": "capability_id",
+      "name": "current_level",
+      "type": "integer",
+      "required": true,
+      "enum": [0, 1, 2, 3, 4],
+      "default": 0,
+      "description": "Learner's current capability level on the L0–L4 scale. Defaults to L0 (no exposure) at record creation. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
+      "example": 0
+    },
+    {
+      "name": "required_level",
+      "type": "integer",
+      "required": true,
+      "enum": [0, 1, 2, 3, 4],
+      "description": "Minimum capability level required by the role. Sourced from role_capability_map.required_level at the time the learning path was generated.",
+      "example": 3
+    },
+    {
+      "name": "gap",
+      "type": "integer",
+      "required": true,
+      "description": "Computed gap = required_level - current_level. Positive means learner needs improvement. Zero or negative means no gap.",
+      "example": 3
+    },
+    {
+      "name": "has_gap",
+      "type": "boolean",
+      "required": true,
+      "default": true,
+      "description": "True if gap > 0. Used by the recommendation engine to identify capabilities needing course assignments.",
+      "example": true
+    },
+    {
+      "name": "gap_score",
+      "type": "integer",
+      "required": true,
+      "description": "Gap expressed as a 0–100 score for path prioritization and ranking.",
+      "example": 60
+    },
+    {
+      "name": "badge",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["learner", "skilled", "advance"],
+      "default": null,
+      "description": "Badge earned by the learner for this capability. Null until a badge threshold is reached. learner = foundational completion, skilled = intermediate proficiency, advance = high-level mastery.",
+      "example": "skilled"
+    },
+    {
+      "name": "why_needed",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Why this capability is needed for the learner's target role.",
+      "example": "Monitor production systems and diagnose runtime issues"
+    },
+    {
+      "name": "how_to_build",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "How the learner should build this capability.",
+      "example": "Complete observability training with logging and monitoring tools"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Record creation timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "required": true,
+      "description": "Last update timestamp",
+      "example": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "constraints": [
+    {
+      "name": "chk_current_level_range",
+      "type": "check",
+      "rule": "current_level >= 0 AND current_level <= 4",
+      "description": "current_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_required_level_range",
+      "type": "check",
+      "rule": "required_level >= 0 AND required_level <= 4",
+      "description": "required_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_gap_computed",
+      "type": "check",
+      "rule": "gap = required_level - current_level",
+      "description": "gap must always equal required_level - current_level"
+    },
+    {
+      "name": "chk_has_gap_consistent",
+      "type": "check",
+      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
+      "description": "has_gap must be true when gap > 0 and false otherwise"
+    },
+    {
+      "name": "chk_badge_values",
+      "type": "check",
+      "rule": "badge IN ('learner', 'skilled', 'advance') OR badge IS NULL",
+      "description": "badge must be one of the defined enum values or null"
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_learner_capabilities_unique",
+      "columns": ["learner_id", "capability_id", "learning_path_id", "role_id"],
+      "type": "composite",
+      "unique": true,
+      "description": "One capability record per learner per capability per path per role — prevents duplicates"
+    },
+    {
+      "name": "idx_learner_capabilities_learner_path_role",
+      "columns": ["learner_id", "learning_path_id", "role_id"],
+      "type": "composite",
+      "description": "Fetch all capabilities for a learner scoped to a specific path and role"
+    },
+    {
+      "name": "idx_learner_capabilities_has_gap",
+      "columns": ["learner_id", "has_gap"],
+      "type": "composite",
+      "description": "Fetch all capabilities where learner has a gap — primary input to course recommendation engine"
+    },
+    {
+      "name": "idx_learner_capabilities_badge",
+      "columns": ["learner_id", "badge"],
+      "type": "composite",
+      "description": "Fetch all badge-earned capabilities for a learner for dashboard and profile display"
+    },
+    {
+      "name": "idx_learner_capabilities_role_capability",
+      "columns": ["role_id", "capability_id"],
+      "type": "composite",
+      "description": "Look up required level for a capability within a role"
+    },
+    {
+      "name": "idx_learner_capabilities_learner_capability",
+      "columns": ["learner_id", "capability_id"],
+      "type": "composite",
+      "description": "Fetch all path/role records for a learner scoped to a specific capability"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id",
+      "description": "Each capability record belongs to one learner"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "capabilities",
+      "local_key": "capability_id",
+      "foreign_key": "id",
+      "description": "Each record references a capability definition"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "learning_paths",
+      "local_key": "learning_path_id",
+      "foreign_key": "id",
+      "description": "Each capability record is scoped to one learning path"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each capability record is assessed against one role"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "role_capability_map",
+      "local_key": ["role_id", "capability_id"],
+      "foreign_key": ["role_id", "capability_id"],
+      "description": "required_level is sourced from role_capability_map at path generation time"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "lc-001",
+      "learner_id": "learner-001",
+      "capability_id": "cap-004",
+      "learning_path_id": "path-001",
+      "role_id": "role-001",
+      "current_level": 0,
+      "required_level": 3,
+      "gap": 3,
+      "has_gap": true,
+      "gap_score": 60,
+      "badge": null,
+      "why_needed": "Monitor production systems and diagnose runtime issues",
+      "how_to_build": "Learn logging, debugging, and monitoring tools",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "lc-002",
+      "learner_id": "learner-001",
+      "capability_id": "cap-002",
+      "learning_path_id": "path-001",
+      "role_id": "role-001",
+      "current_level": 0,
+      "required_level": 3,
+      "gap": 3,
+      "has_gap": true,
+      "gap_score": 40,
+      "badge": "learner",
+      "why_needed": "Build scalable backend systems",
+      "how_to_build": "Study APIs and database optimization",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "lc-003",
+      "learner_id": "learner-001",
+      "capability_id": "cap-001",
+      "learning_path_id": "path-001",
+      "role_id": "role-001",
+      "current_level": 0,
+      "required_level": 2,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 0,
+      "badge": "skilled",
+      "why_needed": null,
+      "how_to_build": null,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "lc-004",
+      "learner_id": "learner-002",
+      "capability_id": "cap-010",
+      "learning_path_id": "path-002",
+      "role_id": "role-002",
+      "current_level": 0,
+      "required_level": 2,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 20,
+      "badge": null,
+      "why_needed": "Ensure code reliability",
+      "how_to_build": "Practice testing and CI/CD",
+      "created_at": "2024-02-01T00:00:00Z",
+      "updated_at": "2024-02-01T00:00:00Z"
+    },
+    {
+      "id": "lc-005",
+      "learner_id": "learner-002",
+      "capability_id": "cap-003",
+      "learning_path_id": "path-003",
+      "role_id": "role-004",
+      "current_level": 0,
+      "required_level": 4,
+      "gap": 4,
+      "has_gap": true,
+      "gap_score": 50,
+      "badge": "advance",
+      "why_needed": "Build ML models",
+      "how_to_build": "Work on real ML projects",
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-02-15T00:00:00Z"
+    }
+  ]
+},
+{
+  "table_name": "learning_path_courses",
+  "description": "Ordered course assignments within a learning path, enriched with capability gap and role readiness data. One row per learner + course + path. Each row represents one level transition for one capability gap — tracking both the course progression state and the gap analysis that drove the course assignment. This is the single source of truth for course sequencing, gap engine output, and recommendation priority.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
       "type": "uuid",
       "required": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The specific capability being assessed. References capabilities_master.id.",
-      "example": "cap-uuid-004"
+      "primary_key": true,
+      "description": "Unique record identifier",
+      "example": "lpc-001"
     },
+    {
+      "name": "learner_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learner_profiles.id",
+      "description": "Learner this course assignment belongs to",
+      "example": "learner-001"
+    },
+    {
+      "name": "learning_path_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "learning_paths.id",
+      "description": "Learning path this course belongs to",
+      "example": "path-001"
+    },
+    {
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id",
+      "description": "The role this course is being assigned against. Each learning path targets one role.",
+      "example": "role-001"
+    },
+    {
+      "name": "course_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "courses.course_id",
+      "description": "Course from the course catalog. Each course maps to one capability at one proficiency level.",
+      "example": "crs-ta-l1"
+    },
+
+    {
+      "name": "sequence_no",
+      "type": "integer",
+      "required": true,
+      "description": "Overall display order of this course within the full learning path (1-based across all capabilities)",
+      "example": 1
+    },
+    {
+      "name": "capability_sequence_no",
+      "type": "integer",
+      "required": true,
+      "description": "Order of this course within the same capability gap. e.g. for a gap of 3, this is 1, 2, or 3.",
+      "example": 1
+    },
+
+    {
+      "name": "from_level",
+      "type": "integer",
+      "required": true,
+      "enum": [0, 1, 2, 3],
+      "description": "Capability level the learner is at when this course is assigned. Denormalized from courses.from_level.",
+      "example": 0
+    },
+    {
+      "name": "to_level",
+      "type": "integer",
+      "required": true,
+      "enum": [1, 2, 3, 4],
+      "description": "Capability level the learner reaches when this course artifact is approved. Denormalized from courses.to_level.",
+      "example": 1
+    },
+
     {
       "name": "current_score",
       "type": "integer",
       "required": true,
-      "description": "Raw capability score 0â€“100 derived from assessment",
+      "description": "Raw capability score 0–100 at the time this course was assigned",
       "example": 20
     },
     {
@@ -1360,7 +1720,7 @@
       "type": "integer",
       "required": true,
       "enum": [0, 1, 2, 3, 4],
-      "description": "Learner's current capability level on the L0â€“L4 scale derived from assessment. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
+      "description": "Learner's current capability level on the L0–L4 scale at assignment time. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
       "example": 1
     },
     {
@@ -1383,14 +1743,14 @@
       "type": "boolean",
       "required": true,
       "default": false,
-      "description": "True if gap > 0. Used by the recommendation engine to find which capabilities need courses assigned.",
+      "description": "True if gap > 0. Used by the recommendation engine to identify capabilities needing courses.",
       "example": true
     },
     {
       "name": "gap_score",
       "type": "integer",
       "required": true,
-      "description": "Gap expressed as a 0â€“100 score for path prioritization and ranking. Derived from current_score vs target score.",
+      "description": "Gap expressed as a 0–100 score for path prioritization and ranking. Derived from current_score vs target score.",
       "example": 60
     },
     {
@@ -1418,355 +1778,7 @@
       "description": "How the learner should build this capability. Populated for priority A and B rows.",
       "example": "Complete observability course with logging, debugging, and monitoring tools"
     },
-    {
-      "name": "created_at",
-      "type": "timestamp",
-      "required": true,
-      "description": "Record creation timestamp",
-      "example": "2024-01-01T00:00:00Z"
-    },
-    {
-      "name": "updated_at",
-      "type": "timestamp",
-      "required": true,
-      "description": "Last update timestamp",
-      "example": "2024-01-01T00:00:00Z"
-    }
-  ],
 
-  "constraints": [
-    {
-      "name": "chk_current_level_range",
-      "type": "check",
-      "rule": "current_level >= 0 AND current_level <= 4",
-      "description": "current_level must be on the L0â€“L4 scale"
-    },
-    {
-      "name": "chk_required_level_range",
-      "type": "check",
-      "rule": "required_level >= 0 AND required_level <= 4",
-      "description": "required_level must be on the L0â€“L4 scale"
-    },
-    {
-      "name": "chk_gap_computed",
-      "type": "check",
-      "rule": "gap = required_level - current_level",
-      "description": "gap must always equal required_level - current_level"
-    },
-    {
-      "name": "chk_has_gap_consistent",
-      "type": "check",
-      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
-      "description": "has_gap must be true when gap > 0 and false otherwise"
-    }
-  ],
-
-  "indexes": [
-    {
-      "name": "idx_learner_capabilities_unique",
-      "columns": ["learner_id", "assessment_id", "learning_path_id", "role_id", "capability_id"],
-      "type": "composite",
-      "unique": true,
-      "description": "One capability record per learner per assessment per path per role â€” prevents duplicates"
-    },
-    {
-      "name": "idx_learner_capabilities_learner_path_role",
-      "columns": ["learner_id", "learning_path_id", "role_id"],
-      "type": "composite",
-      "description": "Fetch all capabilities for a learner scoped to a specific path and role"
-    },
-    {
-      "name": "idx_learner_capabilities_has_gap",
-      "columns": ["learner_id", "has_gap"],
-      "type": "composite",
-      "description": "Fetch all capabilities where learner has a gap â€” primary input to course recommendation engine"
-    },
-    {
-      "name": "idx_learner_capabilities_priority_band",
-      "columns": ["learner_id", "priority_band"],
-      "type": "composite",
-      "description": "Fetch all priority A or B capabilities for a learner"
-    },
-    {
-      "name": "idx_learner_capabilities_role_capability",
-      "columns": ["role_id", "capability_id"],
-      "type": "composite",
-      "description": "Look up required level for a capability within a role"
-    },
-    {
-      "name": "idx_learner_capabilities_learner_assessment",
-      "columns": ["learner_id", "assessment_id"],
-      "type": "composite",
-      "description": "Fetch all capability scores generated from a specific assessment"
-    }
-  ],
-
-  "relationships": [
-    {
-      "type": "many_to_one",
-      "related_table": "learner_profiles",
-      "local_key": "learner_id",
-      "foreign_key": "id",
-      "description": "Each capability record belongs to one learner"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "assessments",
-      "local_key": "assessment_id",
-      "foreign_key": "id",
-      "description": "Each capability record is generated from one assessment"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "learning_paths",
-      "local_key": "learning_path_id",
-      "foreign_key": "id",
-      "description": "Each capability record is scoped to one learning path"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "roles",
-      "local_key": "role_id",
-      "foreign_key": "id",
-      "description": "Each capability record is assessed against one role"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "capabilities_master",
-      "local_key": "capability_id",
-      "foreign_key": "id",
-      "description": "Each record references a master capability definition"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "role_capability_map",
-      "local_key": ["role_id", "capability_id"],
-      "foreign_key": ["role_id", "capability_id"],
-      "description": "required_level is sourced from role_capability_map at path generation time"
-    }
-  ],
-
-  "sample_records": [
-    {
-      "id": "lc-001",
-      "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-001",
-      "role_id": "role-001",
-      "capability_id": "cap-uuid-004",
-      "current_score": 20,
-      "current_level": 1,
-      "required_level": 3,
-      "gap": 2,
-      "has_gap": true,
-      "gap_score": 60,
-      "priority_band": "A",
-      "why_needed": "Monitor production systems and diagnose runtime issues",
-      "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "id": "lc-002",
-      "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-001",
-      "role_id": "role-001",
-      "capability_id": "cap-uuid-002",
-      "current_score": 40,
-      "current_level": 1,
-      "required_level": 3,
-      "gap": 2,
-      "has_gap": true,
-      "gap_score": 40,
-      "priority_band": "A",
-      "why_needed": "Build scalable, efficient backend services",
-      "how_to_build": "Learn REST/GraphQL principles and database indexing strategies",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "id": "lc-003",
-      "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-001",
-      "role_id": "role-001",
-      "capability_id": "cap-uuid-001",
-      "current_score": 50,
-      "current_level": 2,
-      "required_level": 2,
-      "gap": 0,
-      "has_gap": false,
-      "gap_score": 0,
-      "priority_band": null,
-      "why_needed": null,
-      "how_to_build": null,
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "id": "lc-004",
-      "learner_id": "learner-001",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-002",
-      "role_id": "role-002",
-      "capability_id": "cap-uuid-011",
-      "current_score": 40,
-      "current_level": 1,
-      "required_level": 2,
-      "gap": 1,
-      "has_gap": true,
-      "gap_score": 20,
-      "priority_band": "B",
-      "why_needed": "Ensure code reliability and maintainability",
-      "how_to_build": "Master unit testing, integration testing, and CI/CD practices",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    },
-    {
-      "id": "lc-005",
-      "learner_id": "learner-002",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-003",
-      "role_id": "role-004",
-      "capability_id": "cap-uuid-003",
-      "current_score": 50,
-      "current_level": 2,
-      "required_level": 4,
-      "gap": 2,
-      "has_gap": true,
-      "gap_score": 50,
-      "priority_band": "A",
-      "why_needed": "Build predictive models for business insights",
-      "how_to_build": "Complete ML engineering courses with real-world projects",
-      "created_at": "2024-02-15T00:00:00Z",
-      "updated_at": "2024-02-15T00:00:00Z"
-    },
-    {
-      "id": "lc-006",
-      "learner_id": "learner-002",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-003",
-      "role_id": "role-004",
-      "capability_id": "cap-uuid-005",
-      "current_score": 60,
-      "current_level": 2,
-      "required_level": 4,
-      "gap": 2,
-      "has_gap": true,
-      "gap_score": 40,
-      "priority_band": "A",
-      "why_needed": "Build scalable data pipelines",
-      "how_to_build": "Learn ETL frameworks and distributed computing",
-      "created_at": "2024-02-15T00:00:00Z",
-      "updated_at": "2024-02-15T00:00:00Z"
-    },
-    {
-      "id": "lc-007",
-      "learner_id": "learner-002",
-      "assessment_id": "d9c8e5f2-1a2b-4c3d-9e8f-7a6b5c4d3e2f",
-      "learning_path_id": "path-004",
-      "role_id": "role-005",
-      "capability_id": "cap-uuid-009",
-      "current_score": 50,
-      "current_level": 2,
-      "required_level": 3,
-      "gap": 1,
-      "has_gap": true,
-      "gap_score": 50,
-      "priority_band": "B",
-      "why_needed": "Validate data-driven decisions with statistical rigor",
-      "how_to_build": "Study advanced statistics and experimental design",
-      "created_at": "2024-02-15T00:00:00Z",
-      "updated_at": "2024-02-15T00:00:00Z"
-    }
-  ]
-},
-{
-  "table_name": "learning_path_courses",
-  "description": "Ordered course assignments within a learning path. One row per course per path. Each row represents one level transition for one capability gap. Courses are unlocked sequentially — the first course for each gap is immediately available, subsequent courses for the same gap unlock only after the previous course artifact is approved.",
-  "primary_key": "id",
-
-  "fields": [
-    {
-      "name": "id",
-      "type": "uuid",
-      "required": true,
-      "primary_key": true,
-      "description": "Unique record identifier",
-      "example": "lpc-001"
-    },
-    {
-      "name": "learning_path_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "learning_paths.id",
-      "description": "Learning path this course belongs to",
-      "example": "path-001"
-    },
-    {
-      "name": "course_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "courses.course_id",
-      "description": "Course from the course catalog",
-      "example": "SE-BE-OBS-01"
-    },
-    {
-      "name": "capability_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The capability this course addresses. Denormalized from courses.capability_id for fast gap-to-course tracing.",
-      "example": "cap-uuid-004"
-    },
-    {
-      "name": "from_level",
-      "type": "integer",
-      "required": true,
-      "enum": [0, 1, 2, 3],
-      "description": "Capability level the learner is at when this course is assigned. Denormalized from courses.from_level.",
-      "example": 0
-    },
-    {
-      "name": "to_level",
-      "type": "integer",
-      "required": true,
-      "enum": [1, 2, 3, 4],
-      "description": "Capability level the learner reaches when this course artifact is approved. Denormalized from courses.to_level.",
-      "example": 1
-    },
-    {
-      "name": "sequence_no",
-      "type": "integer",
-      "required": true,
-      "description": "Overall display order of this course within the full learning path (1-based across all capabilities)",
-      "example": 1
-    },
-    {
-      "name": "capability_sequence_no",
-      "type": "integer",
-      "required": true,
-      "description": "Order of this course within the same capability gap. e.g. for a gap of 3, this is 1, 2, or 3.",
-      "example": 1
-    },
-    {
-      "name": "is_locked",
-      "type": "boolean",
-      "required": true,
-      "default": false,
-      "description": "Whether this course is currently locked for the learner. The first course per capability gap starts unlocked. Subsequent courses start locked and unlock when the previous course artifact is approved.",
-      "example": false
-    },
-    {
-      "name": "unlocks_after_submission_id",
-      "type": "uuid",
-      "required": false,
-      "nullable": true,
-      "foreign_key": "artifact_submissions.id",
-      "description": "The submission that must reach approved status to unlock this course. Null for the first course in each capability gap — those are immediately available.",
-      "example": "as-001"
-    },
     {
       "name": "status",
       "type": "varchar",
@@ -1777,11 +1789,21 @@
       "example": "in_progress"
     },
     {
+      "name": "badge",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["Qualified", "Pro"],
+      "default": null,
+      "description": "Badge earned by the learner upon completing this course. Null until completed. 'Qualified' on standard completion; 'Pro' on exceptional performance.",
+      "example": "Qualified"
+    },
+    {
       "name": "completion_percentage",
       "type": "integer",
       "required": true,
       "default": 0,
-      "description": "Course completion percentage 0-100 based on module progress",
+      "description": "Course completion percentage 0–100 based on module progress",
       "example": 17
     },
     {
@@ -1816,128 +1838,203 @@
 
   "constraints": [
     {
-      "name": "chk_first_course_not_locked",
+      "name": "chk_current_level_range",
       "type": "check",
-      "rule": "capability_sequence_no > 1 OR (capability_sequence_no = 1 AND unlocks_after_submission_id IS NULL)",
-      "description": "The first course in each capability sequence must have no unlock dependency."
+      "rule": "current_level >= 0 AND current_level <= 4",
+      "description": "current_level must be on the L0–L4 scale"
     },
     {
-      "name": "chk_subsequent_course_has_unlock",
+      "name": "chk_required_level_range",
       "type": "check",
-      "rule": "capability_sequence_no = 1 OR unlocks_after_submission_id IS NOT NULL",
-      "description": "Any course beyond the first in a capability sequence must reference the submission that unlocks it."
+      "rule": "required_level >= 0 AND required_level <= 4",
+      "description": "required_level must be on the L0–L4 scale"
+    },
+    {
+      "name": "chk_gap_computed",
+      "type": "check",
+      "rule": "gap = required_level - current_level",
+      "description": "gap must always equal required_level - current_level"
+    },
+    {
+      "name": "chk_has_gap_consistent",
+      "type": "check",
+      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
+      "description": "has_gap must be true when gap > 0 and false otherwise"
+    },
+    {
+      "name": "chk_badge_only_on_completion",
+      "type": "check",
+      "rule": "badge IS NULL OR status = 'completed'",
+      "description": "A badge can only be awarded when the course status is completed"
     }
   ],
 
   "unique_constraints": [
     {
-      "name": "uq_lpc_path_course",
-      "columns": ["learning_path_id", "course_id"],
-      "description": "One course per path"
-    },
-    {
-      "name": "uq_lpc_path_capability_level",
-      "columns": ["learning_path_id", "capability_id", "from_level"],
-      "description": "One level transition per capability per path — prevents duplicate course assignment for the same gap step"
+      "name": "uq_lpc_learner_path_course",
+      "columns": ["learner_id", "learning_path_id", "course_id"],
+      "description": "One course assignment per learner per path — prevents duplicates"
     }
   ],
 
   "indexes": [
     {
-      "name": "idx_lpc_learning_path_id",
-      "columns": ["learning_path_id"]
+      "name": "idx_lpc_learner_path_role",
+      "columns": ["learner_id", "learning_path_id", "role_id"],
+      "type": "composite",
+      "description": "Fetch all course assignments for a learner scoped to a specific path and role"
     },
     {
-      "name": "idx_lpc_course_id",
-      "columns": ["course_id"]
+      "name": "idx_lpc_learner_has_gap",
+      "columns": ["learner_id", "has_gap"],
+      "type": "composite",
+      "description": "Fetch all courses where learner has a gap — primary input to recommendation engine"
     },
     {
-      "name": "idx_lpc_capability_id",
-      "columns": ["capability_id"],
-      "description": "Find all courses assigned for a given capability in a path"
+      "name": "idx_lpc_learner_priority_band",
+      "columns": ["learner_id", "priority_band"],
+      "type": "composite",
+      "description": "Fetch all priority A or B course assignments for a learner"
     },
     {
       "name": "idx_lpc_status",
-      "columns": ["status"]
-    },
-    {
-      "name": "idx_lpc_is_locked",
-      "columns": ["learning_path_id", "is_locked"],
+      "columns": ["learner_id", "status"],
       "type": "composite",
-      "description": "Fast fetch of all unlocked courses in a path for dashboard display"
+      "description": "Filter course assignments by progress status for a learner"
     },
     {
-      "name": "idx_lpc_unlocks_after",
-      "columns": ["unlocks_after_submission_id"],
-      "description": "On submission approval, find which course to unlock next"
+      "name": "idx_lpc_badge",
+      "columns": ["learning_path_id", "badge"],
+      "type": "composite",
+      "description": "Fast fetch of all badge-earned courses in a path for dashboard/profile display"
+    },
+    {
+      "name": "idx_lpc_course_id",
+      "columns": ["course_id"],
+      "description": "Look up all learner assignments for a given course"
+    },
+    {
+      "name": "idx_lpc_role_course",
+      "columns": ["role_id", "course_id"],
+      "type": "composite",
+      "description": "Look up required level for a course within a role"
     }
   ],
 
   "relationships": [
     {
       "type": "many_to_one",
+      "related_table": "learner_profiles",
+      "local_key": "learner_id",
+      "foreign_key": "id",
+      "description": "Each course assignment belongs to one learner"
+    },
+    {
+      "type": "many_to_one",
       "related_table": "learning_paths",
       "local_key": "learning_path_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each course assignment is scoped to one learning path"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id",
+      "description": "Each course assignment is assessed against one role"
     },
     {
       "type": "many_to_one",
       "related_table": "courses",
       "local_key": "course_id",
-      "foreign_key": "course_id"
+      "foreign_key": "course_id",
+      "description": "Each row references a course which carries capability_id, level_no, and all capability metadata"
     },
     {
       "type": "many_to_one",
-      "related_table": "capabilities_master",
-      "local_key": "capability_id",
-      "foreign_key": "id"
-    },
-    {
-      "type": "many_to_one",
-      "related_table": "artifact_submissions",
-      "local_key": "unlocks_after_submission_id",
-      "foreign_key": "id",
-      "description": "Nullable — only set for courses that require a prior approved submission to unlock"
+      "related_table": "role_capability_map",
+      "local_key": ["role_id", "course_id"],
+      "foreign_key": ["role_id", "course_id"],
+      "description": "required_level is sourced from role_capability_map at path generation time"
     }
-  ],
-
-  "notes": [
-    "When gap engine runs and finds capability_id=X with gap=2 (current_level=0, required_level=2), it inserts 2 rows: course L0→L1 (is_locked=false, capability_sequence_no=1) and course L1→L2 (is_locked=true, capability_sequence_no=2, unlocks_after_submission_id=NULL until L0→L1 course artifact is submitted).",
-    "On artifact approval for L0→L1 course: set is_locked=false on the L1→L2 row, set unlocks_after_submission_id to the approved submission id.",
-    "completion_percentage is recomputed from learner_module_progress rows for this course."
   ],
 
   "sample_records": [
     {
       "id": "lpc-001",
+      "learner_id": "learner-001",
       "learning_path_id": "path-001",
+      "role_id": "role-001",
       "course_id": "SE-BE-OBS-01",
-      "capability_id": "cap-uuid-004",
-      "from_level": 0,
-      "to_level": 1,
       "sequence_no": 1,
       "capability_sequence_no": 1,
-      "is_locked": false,
-      "unlocks_after_submission_id": null,
-      "status": "in_progress",
-      "completion_percentage": 17,
+      "from_level": 0,
+      "to_level": 1,
+      "current_score": 20,
+      "current_level": 1,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 60,
+      "priority_band": "A",
+      "why_needed": "Monitor production systems and diagnose runtime issues",
+      "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
+      "status": "completed",
+      "badge": "Qualified",
+      "completion_percentage": 100,
       "started_at": "2024-01-15T00:00:00Z",
-      "completed_at": null,
+      "completed_at": "2024-02-01T00:00:00Z",
       "created_at": "2024-01-15T00:00:00Z",
-      "updated_at": "2024-01-15T00:00:00Z"
+      "updated_at": "2024-02-01T00:00:00Z"
     },
     {
       "id": "lpc-002",
+      "learner_id": "learner-001",
       "learning_path_id": "path-001",
+      "role_id": "role-001",
       "course_id": "SE-BE-OBS-02",
-      "capability_id": "cap-uuid-004",
-      "from_level": 1,
-      "to_level": 2,
       "sequence_no": 2,
       "capability_sequence_no": 2,
-      "is_locked": true,
-      "unlocks_after_submission_id": null,
+      "from_level": 1,
+      "to_level": 2,
+      "current_score": 20,
+      "current_level": 1,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 60,
+      "priority_band": "A",
+      "why_needed": "Monitor production systems and diagnose runtime issues",
+      "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
+      "status": "in_progress",
+      "badge": null,
+      "completion_percentage": 17,
+      "started_at": "2024-02-02T00:00:00Z",
+      "completed_at": null,
+      "created_at": "2024-01-15T00:00:00Z",
+      "updated_at": "2024-02-02T00:00:00Z"
+    },
+    {
+      "id": "lpc-003",
+      "learner_id": "learner-001",
+      "learning_path_id": "path-001",
+      "role_id": "role-001",
+      "course_id": "SE-BE-API-01",
+      "sequence_no": 3,
+      "capability_sequence_no": 1,
+      "from_level": 0,
+      "to_level": 1,
+      "current_score": 40,
+      "current_level": 1,
+      "required_level": 3,
+      "gap": 2,
+      "has_gap": true,
+      "gap_score": 40,
+      "priority_band": "A",
+      "why_needed": "Build scalable, efficient backend services",
+      "how_to_build": "Learn REST/GraphQL principles and database indexing strategies",
       "status": "not_started",
+      "badge": null,
       "completion_percentage": 0,
       "started_at": null,
       "completed_at": null,
@@ -2738,7 +2835,7 @@
       "artifact_id": "ma-003",
       "file_name": "logging-patch-walkthrough",
       "file_url": "https://docs.rareminds.dev/logging-patch-walkthrough",
-      "file_type": "link",
+      "file_type": "png",
       "version": 1,
       "is_downloadable": false,
       "created_at": "2024-01-01T00:00:00Z",
@@ -3650,7 +3747,7 @@
 },
 {
   "table_name": "capabilities_master",
-  "description": "Master capability reference table. Each row is one unique capability entry sourced directly from the client's Role L1 Gap Model. Fields map 1:1 to client columns. The capability_id is not unique alone â€” the same ID groups multiple named capabilities under one library domain.",
+  "description": "Master capability reference table. Each row is one unique capability entry sourced directly from the client's Role L1 Gap Model. The capability_id groups multiple named capabilities under one library domain.",
   "primary_key": "id",
 
   "fields": [
@@ -3661,48 +3758,26 @@
       "primary_key": true,
       "description": "Surrogate UUID primary key"
     },
-    {
-      "name": "capability_id",
-      "type": "varchar",
-      "required": true,
-      "description": "Client canonical ID from Role L1 Gap Model. e.g. SE-CAP-01. Not unique alone.",
-      "example": "SE-CAP-01"
-    },
+    
     {
       "name": "capability_library",
       "type": "varchar",
       "required": true,
-      "description": "Capability (Library) column from client model. Groups capabilities into a domain area.",
+      "description": "Groups capabilities into a domain area.",
       "example": "Software Development"
     },
     {
       "name": "capability",
       "type": "varchar",
       "required": true,
-      "description": "Capability column from client model. The specific named capability.",
+      "description": "Specific named capability.",
       "example": "Backend Service Development"
-    },
-    {
-      "name": "role_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "roles.id",
-      "description": "Role this capability belongs to. Every capability is tied to one industry role.",
-      "example": "role-001"
-    },
-    {
-      "name": "domain_id",
-      "type": "uuid",
-      "required": true,
-      "foreign_key": "domains.id",
-      "description": "Denormalized FK to domains. Derived from roles.domain_id for fast filtering without joins. Must stay consistent with role's domain.",
-      "example": "dom-001"
     },
     {
       "name": "industry_outcome",
       "type": "text",
       "required": true,
-      "description": "Industry Outcome column from client model.",
+      "description": "Expected real-world outcome for this capability.",
       "example": "Build maintainable backend services that implement business logic correctly."
     },
     {
@@ -3710,54 +3785,8 @@
       "type": "varchar",
       "required": false,
       "nullable": true,
-      "description": "Academic Coverage column from client model.",
+      "description": "Academic areas covering this capability.",
       "example": "Programming, Object Oriented Programming, Data Structures"
-    },
-    {
-      "name": "correct_academic_subject",
-      "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "description": "Correct Academic Subject column from client model.",
-      "example": "Programming Fundamentals"
-    },
-    {
-      "name": "major_topics_refresher",
-      "type": "text",
-      "required": false,
-      "nullable": true,
-      "description": "Major Topics (Refresher) column from client model.",
-      "example": "Variables, Data Types, Operators, Control Flow, Functions"
-    },
-    {
-      "name": "capability_gap",
-      "type": "text",
-      "required": true,
-      "description": "Capability Gap column from client model.",
-      "example": "Graduates can write functional code but struggle to structure backend services."
-    },
-    {
-      "name": "skill_gap_learning_outcomes",
-      "type": "text",
-      "required": true,
-      "description": "Skill Gap (Learning Outcomes) column from client model.",
-      "example": "Design modular service structure; separate controllers, services, and data layers."
-    },
-    {
-      "name": "gap_review_status",
-      "type": "varchar",
-      "required": true,
-      "enum": ["Approved", "Needs Revision"],
-      "description": "Gap Review Status column from client model.",
-      "example": "Approved"
-    },
-    {
-      "name": "micro_gap_examples",
-      "type": "text",
-      "required": false,
-      "nullable": true,
-      "description": "Micro Gap Examples column from client model.",
-      "example": "Hardcoded values; poor naming conventions; missing validation."
     },
     {
       "name": "is_active",
@@ -3783,37 +3812,16 @@
   "unique_constraints": [
     {
       "name": "uq_capabilities_master_id_capability",
-      "columns": ["capability_id", "capability"],
-      "description": "capability_id + capability name must be unique"
+      "columns": ["id", "capability"],
+      "description": "id + capability name must be unique"
     }
   ],
 
   "indexes": [
     {
-      "name": "idx_capabilities_master_role_id",
-      "columns": ["role_id"],
-      "description": "Get all capabilities under a given role"
-    },
-    {
-      "name": "idx_capabilities_master_domain_id",
-      "columns": ["domain_id"],
-      "description": "Get all capabilities under a given domain (denormalized fast lookup)"
-    },
-    {
-      "name": "idx_capabilities_master_role_domain",
-      "columns": ["role_id", "domain_id"],
-      "type": "composite",
-      "description": "Filter capabilities by role and domain together"
-    },
-    {
       "name": "idx_capabilities_master_capability_id",
-      "columns": ["capability_id"],
-      "description": "Group all named capabilities under a given capability_id"
-    },
-    {
-      "name": "idx_capabilities_master_gap_review_status",
-      "columns": ["gap_review_status"],
-      "description": "Filter by review status"
+      "columns": ["id"],
+      "description": "Group all named capabilities under a given id"
     }
   ],
 
@@ -3821,120 +3829,58 @@
     {
       "type": "many_to_one",
       "related_table": "roles",
-      "local_key": "role_id",
-      "foreign_key": "id",
+      "local_key": "id",
+      "foreign_key": "role_id",
       "description": "Each capability belongs to one role"
     },
     {
-      "type": "many_to_one",
-      "related_table": "domains",
-      "local_key": "domain_id",
-      "foreign_key": "id",
-      "description": "Each capability belongs to one domain (denormalized from role for fast filtering)"
-    },
-    {
       "type": "one_to_many",
-      "related_table": "learner_capabilities",
+      "related_table": "courses",
       "local_key": "id",
       "foreign_key": "capability_id",
-      "description": "One master capability maps to many learner capability records"
+      "description": "One capability maps to many courses — one per proficiency level (L1 through L5)"
     }
   ],
 
-  "note": "domain_id is intentionally denormalized from roles.domain_id to avoid joins when filtering capabilities by domain. It must always stay consistent with the role's domain. Sample records below are a representative subset. Full seed data contains ~180 unique capabilities across 240 source rows from Role_L1_Gap_Model.json.",
+  "note": "domain_id is intentionally denormalized from roles.domain_id to avoid joins when filtering capabilities by domain. It must always stay consistent with the role's domain.",
 
   "sample_records": [
     {
       "id": "cap-uuid-001",
-      "capability_id": "SE-CAP-01",
       "capability_library": "Software Development",
       "capability": "Backend Service Development",
-      "role_id": "role-001",
-      "domain_id": "dom-001",
       "industry_outcome": "Build maintainable backend services that implement business logic correctly and follow team coding standards.",
       "academic_coverage": "Programming, Object Oriented Programming, Data Structures",
-      "correct_academic_subject": "Programming Fundamentals",
-      "major_topics_refresher": "Variables, Data Types, Operators, Control Flow, Functions, Arrays/Collections, Object-Oriented Programming, Data Structures, Error Handling, Basic Algorithms",
-      "capability_gap": "Graduates can write functional code but struggle to structure backend services suitable for production environments.",
-      "skill_gap_learning_outcomes": "Design modular service structure; separate controllers, services, and data layers; implement validation and error handling; apply coding standards; refactor code based on review feedback.",
-      "gap_review_status": "Approved",
-      "micro_gap_examples": "Hardcoded values; poor naming conventions; missing validation; duplicate logic across modules.",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
     },
     {
       "id": "cap-uuid-002",
-      "capability_id": "SE-CAP-01",
       "capability_library": "Software Development",
       "capability": "Full-Stack Application Coding",
-      "role_id": "role-002",
-      "domain_id": "dom-001",
       "industry_outcome": "Build frontend and backend code components that work together to deliver usable application features.",
       "academic_coverage": "Programming, basic web development concepts",
-      "correct_academic_subject": "Programming Fundamentals",
-      "major_topics_refresher": "Variables, Data Types, Operators, Control Flow, Functions, Arrays/Collections, Object-Oriented Programming, Data Structures, Error Handling, Basic Algorithms",
-      "capability_gap": "Students understand programming concepts but struggle to implement business logic across both frontend and backend layers.",
-      "skill_gap_learning_outcomes": "Develop feature logic across UI and service layers; structure reusable code; connect interface actions to business rules.",
-      "gap_review_status": "Approved",
-      "micro_gap_examples": "Duplicated logic across layers; fragile feature implementation; weak code organization.",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
     },
     {
       "id": "cap-uuid-003",
-      "capability_id": "SE-CAP-02",
       "capability_library": "API Engineering",
       "capability": "API Design & Implementation",
-      "role_id": "role-001",
-      "domain_id": "dom-002",
       "industry_outcome": "Develop REST APIs that expose application functionality and follow consistent request/response patterns.",
       "academic_coverage": "Programming, Computer Networks",
-      "correct_academic_subject": "Computer Networks",
-      "major_topics_refresher": "OSI Model, TCP/IP, HTTP/HTTPS, DNS, Routing, IP Addressing, Network Protocols, Clientâ€“Server Communication",
-      "capability_gap": "Students understand HTTP basics but cannot design production-ready API endpoints or manage API contracts.",
-      "skill_gap_learning_outcomes": "Design REST endpoints using proper resources and verbs; return correct HTTP status codes; implement request validation; structure response payloads; implement pagination and filtering.",
-      "gap_review_status": "Approved",
-      "micro_gap_examples": "Always returning HTTP 200; inconsistent API responses; unclear endpoint naming; missing validation.",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
     },
     {
       "id": "cap-uuid-004",
-      "capability_id": "SE-CAP-08",
       "capability_library": "Observability Basics",
       "capability": "Debugging & Observability",
-      "role_id": "role-001",
-      "domain_id": "dom-008",
-      "industry_outcome": "Diagnose and resolve runtime issues using logs, debugging tools, and systematic troubleshooting.",
+      "industry_outcome": "Diagnose and resolve runtime issues using logs and debugging tools.",
       "academic_coverage": "Programming, Operating Systems",
-      "correct_academic_subject": "Operating Systems",
-      "major_topics_refresher": "Processes, Threads, Memory Management, File Systems, Scheduling, System Calls, Concurrency, Deadlocks",
-      "capability_gap": "Students debug small programs but lack structured approaches to diagnosing production issues.",
-      "skill_gap_learning_outcomes": "Interpret stack traces; use debuggers effectively; implement structured logging; reproduce bugs through test cases; isolate root causes; write bug reports.",
-      "gap_review_status": "Approved",
-      "micro_gap_examples": "Using print statements instead of logs; inability to reproduce bugs; fixing symptoms instead of root cause.",
-      "is_active": true,
-      "created_at": "2026-03-31T00:00:00Z",
-      "updated_at": "2026-03-31T00:00:00Z"
-    },
-    {
-      "id": "cap-uuid-005",
-      "capability_id": "SE-CAP-14",
-      "capability_library": "CI/CD & Release Engineering",
-      "capability": "Application Deployment Basics",
-      "role_id": "role-003",
-      "domain_id": "dom-012",
-      "industry_outcome": "Deploy applications to runtime environments using standard deployment processes.",
-      "academic_coverage": "Operating Systems, basic networking",
-      "correct_academic_subject": "Operating Systems",
-      "major_topics_refresher": "Processes, Threads, Memory Management, File Systems, Scheduling, System Calls, Concurrency, Deadlocks",
-      "capability_gap": "Students understand programs but lack experience deploying applications into real runtime environments.",
-      "skill_gap_learning_outcomes": "Package applications for deployment; run applications in server environments; understand environment variables and configuration.",
-      "gap_review_status": "Approved",
-      "micro_gap_examples": "Hardcoded configuration; inability to run applications outside local machine.",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
@@ -3943,7 +3889,7 @@
 },
 {
   "table_name": "artifact_evaluation_flows",
-  "description": "Tracks the full AI â†’ Staff â†’ Industry evaluation pipeline for a submission. One row per stage per submission. When the final stage reaches an approved decision, the progression engine fires: learner_capabilities.current_level is incremented, the next module or course is unlocked, and XP is awarded.",
+  "description": "Tracks the full AI → Staff → Industry evaluation pipeline for a submission. One row per stage per submission. This table captures the status, feedback, and outcomes at each stage, as well as the overall flow status. When overall_status reaches 'approved', the progression engine is triggered to advance the learner.",
   "primary_key": "id",
 
   "fields": [
@@ -4120,7 +4066,7 @@
       "name": "idx_aef_approved_not_triggered",
       "columns": ["overall_status", "progression_triggered"],
       "type": "composite",
-      "description": "Find approved flows where progression has not yet fired â€” used by the progression job as a safety net"
+      "description": "Find approved flows where progression has not yet fired — used by the progression job as a safety net"
     }
   ],
 
@@ -4136,25 +4082,11 @@
       "related_table": "users",
       "local_key": "evaluated_by",
       "foreign_key": "id",
-      "description": "Nullable â€” only for staff and industry stages"
+      "description": "Nullable — only for staff and industry stages"
     }
   ],
 
-  "progression_trigger_logic": {
-    "description": "What happens when overall_status is set to approved",
-    "steps": [
-      "1. Find the submission: SELECT artifact_id, learner_id, learner_module_progress_id FROM artifact_submissions WHERE id = :submission_id",
-      "2. Find the course for this artifact: SELECT course_id FROM modules JOIN module_artifacts ON modules.id = module_artifacts.module_id WHERE module_artifacts.id = :artifact_id",
-      "3. Find the course's capability transition: SELECT capability_id, to_level FROM courses WHERE course_id = :course_id",
-      "4. Update learner capability level: UPDATE learner_capabilities SET current_level = :to_level, level_label = :to_level_label, updated_at = NOW() WHERE learner_id = :learner_id AND capability_id = :capability_id",
-      "5. Update skill gap: UPDATE learner_capabilities SET current_level = :to_level, gap = required_level - :to_level, has_gap = (required_level > :to_level) WHERE learner_id = :learner_id AND capability_id = :capability_id",
-      "6. Update module progress: UPDATE learner_module_progress SET artifact_approval_status = 'approved', module_status = 'completed' WHERE id = :learner_module_progress_id",
-      "7. Unlock next module: UPDATE learner_module_progress SET is_locked = false WHERE learner_id = :learner_id AND course_id = :course_id AND module_id = (next module_no) AND is_locked = true",
-      "8. If all modules in course are completed: UPDATE learning_path_courses SET status='completed', completed_at=NOW(). Then unlock next course in the capability gap sequence by setting is_locked=false on the next learning_path_courses row.",
-      "9. Award XP: INSERT INTO xp_events (learner_id, source_type, source_id, xp_awarded, earned_at) VALUES (:learner_id, 'artifact_approved', :submission_id, :xp_amount, NOW())",
-      "10. Mark progression as fired: UPDATE artifact_evaluation_flows SET progression_triggered = true WHERE id = :aef_id"
-    ]
-  },
+
 
   "sample_records": [
     {
@@ -4368,7 +4300,6 @@
   "table_name": "roles",
   "description": "Master list of industry roles. Each role maps to capabilities learners in that role are expected to develop.",
   "primary_key": "id",
-
   "fields": [
     {
       "name": "id",
@@ -4378,7 +4309,7 @@
       "description": "Unique role identifier",
       "example": "role-001"
     },
-     {
+    {
       "name": "domain_id",
       "type": "uuid",
       "required": true,
@@ -4395,12 +4326,35 @@
       "example": "Backend Engineer"
     },
     {
+      "name": "role_order",
+      "type": "integer",
+      "required": true,
+      "description": "Position of this role in the overall career hierarchy (1 = most junior)",
+      "example": 1
+    },
+    {
+      "name": "industry",
+      "type": "varchar",
+      "required": true,
+      "description": "Industry this role belongs to",
+      "example": "Corporate Functions"
+    },
+    {
       "name": "description",
       "type": "text",
       "required": false,
       "nullable": true,
       "description": "What this role does in industry",
       "example": "Designs and builds server-side services, APIs, and data layers."
+    },
+    {
+      "name": "next_role_id",
+      "type": "uuid",
+      "required": false,
+      "nullable": true,
+      "foreign_key": "roles.id",
+      "description": "Points to the next role in career progression (based on role_order)",
+      "example": "role-002"
     },
     {
       "name": "is_active",
@@ -4423,21 +4377,23 @@
       "example": "2026-03-31T00:00:00Z"
     }
   ],
-
   "indexes": [
     {
       "name": "idx_roles_name",
-      "columns": ["name"],
+      "columns": [
+        "name"
+      ],
       "unique": true,
       "description": "Enforce unique role names"
     },
     {
       "name": "idx_roles_active",
-      "columns": ["is_active"],
+      "columns": [
+        "is_active"
+      ],
       "description": "Filter active roles"
     }
   ],
-
   "relationships": [
     {
       "type": "one_to_many",
@@ -4445,15 +4401,24 @@
       "local_key": "id",
       "foreign_key": "role_id",
       "description": "One role has many capabilities"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "next_role_id",
+      "foreign_key": "id",
+      "description": "Each role can point to its next role in the hierarchy"
     }
   ],
-
   "sample_records": [
     {
       "id": "role-001",
       "domain_id": "dom-001",
-      "name": "Backend Engineer",
-      "description": "Designs and builds server-side services, APIs, and data layers.",
+      "name": "Junior Backend Engineer",
+      "role_order": 1,
+      "industry": "Corporate Functions",
+      "description": "Entry-level backend developer assisting in API and service development.",
+      "next_role_id": "role-002",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
@@ -4461,17 +4426,23 @@
     {
       "id": "role-002",
       "domain_id": "dom-001",
-      "name": "Full-Stack Engineer",
-      "description": "Builds both frontend and backend components of an application.",
+      "name": "Backend Engineer",
+      "role_order": 2,
+      "industry": "Corporate Functions",
+      "description": "Designs and builds server-side services, APIs, and data layers.",
+      "next_role_id": "role-004",
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
     },
     {
-      "id": "role-003",
+      "id": "role-004",
       "domain_id": "dom-001",
-      "name": "DevOps Engineer",
-      "description": "Manages deployment pipelines, infrastructure, and release engineering.",
+      "name": "Senior Backend Engineer",
+      "role_order": 3,
+      "industry": "Corporate Functions",
+      "description": "Leads backend architecture, optimizes performance, and mentors juniors.",
+      "next_role_id": null,
       "is_active": true,
       "created_at": "2026-03-31T00:00:00Z",
       "updated_at": "2026-03-31T00:00:00Z"
@@ -4543,7 +4514,7 @@
       "type": "integer",
       "required": false,
       "nullable": true,
-      "description": "Duration in seconds â€” applicable for video and audio content types only",
+      "description": "Duration in seconds — applicable for video and audio content types only",
       "example": 900
     },
     {
@@ -4824,13 +4795,13 @@
       "example": 50
     },
     {
-      "name": "capability_id",
+      "name": "module_id",
       "type": "uuid",
       "required": false,
       "nullable": true,
-      "foreign_key": "capabilities_master.id",
-      "description": "The capability this XP relates to. Populated for artifact_approved and course_completed events to support capability-level XP dashboards.",
-      "example": "cap-uuid-004"
+      "foreign_key": "modules.id",
+      "description": "The module this XP relates to. Populated for artifact_approved and course_completed events to support module-level XP dashboards.",
+      "example": "module-004"
     },
     {
       "name": "earned_at",
@@ -4874,10 +4845,10 @@
       "description": "Check if XP has already been awarded for a given source (idempotency guard)"
     },
     {
-      "name": "idx_xp_capability_id",
-      "columns": ["learner_id", "capability_id"],
+      "name": "idx_xp_module_id",
+      "columns": ["learner_id", "module_id"],
       "type": "composite",
-      "description": "Capability-level XP breakdown for dashboard"
+      "description": "Module-level XP breakdown for dashboard"
     },
     {
       "name": "idx_xp_earned_at",
@@ -4896,10 +4867,10 @@
     },
     {
       "type": "many_to_one",
-      "related_table": "capabilities_master",
-      "local_key": "capability_id",
+      "related_table": "modules",
+      "local_key": "module_id",
       "foreign_key": "id",
-      "description": "Nullable â€” only for artifact and course events"
+      "description": "Nullable — only for artifact and course events"
     }
   ],
 
@@ -4919,7 +4890,7 @@
       "source_type": "stage_completed",
       "source_id": "lsp-001",
       "xp_awarded": 10,
-      "capability_id": null,
+      "module_id": null,
       "earned_at": "2024-01-20T00:00:00Z",
       "created_at": "2024-01-20T00:00:00Z"
     },
@@ -4929,7 +4900,7 @@
       "source_type": "artifact_approved",
       "source_id": "as-002",
       "xp_awarded": 50,
-      "capability_id": "cap-uuid-004",
+      "module_id": "module-004",
       "earned_at": "2024-01-22T10:00:00Z",
       "created_at": "2024-01-22T10:00:00Z"
     },
@@ -4939,9 +4910,97 @@
       "source_type": "course_completed",
       "source_id": "lpc-001",
       "xp_awarded": 100,
-      "capability_id": "cap-uuid-004",
+      "module_id": "module-004",
       "earned_at": "2024-01-22T10:01:00Z",
       "created_at": "2024-01-22T10:01:00Z"
+    }
+  ]
+},
+{
+  "table_name": "level_scale",
+  "description": "Global proficiency scale used across all capabilities. Defines 6 levels (0–5) with generic behavioral definitions. Level 0 means no exposure; Level 5 means strategic design and leadership.",
+  "primary_key": "id",
+
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true,
+      "description": "Unique identifier for each level",
+      "example": "lvl-uuid-001"
+    },
+    {
+      "name": "level_no",
+      "type": "integer",
+      "required": true,
+      "unique": true,
+      "description": "Numeric level identifier (0 = no exposure, 5 = strategic leader)",
+      "example": 1
+    },
+    {
+      "name": "level_code",
+      "type": "varchar",
+      "required": true,
+      "unique": true,
+      "description": "Short code for the level (L0 through L5)",
+      "example": "L1"
+    },
+    {
+      "name": "level_label",
+      "type": "varchar",
+      "required": true,
+      "description": "Human-readable label for this level",
+      "example": "Basic awareness"
+    },
+    {
+      "name": "generic_definition",
+      "type": "text",
+      "required": true,
+      "description": "Generic behavioral definition applying to any capability at this level",
+      "example": "Understands the basics and can support simple tasks."
+    }
+  ],
+
+  "indexes": [
+    {
+      "name": "idx_level_scale_level_no",
+      "columns": ["level_no"],
+      "type": "unique",
+      "description": "Ensure unique level ordering"
+    },
+    {
+      "name": "idx_level_scale_code",
+      "columns": ["level_code"],
+      "type": "unique",
+      "description": "Ensure unique level codes (L0–L5)"
+    }
+  ],
+
+  "relationships": [
+    {
+      "type": "one_to_many",
+      "related_table": "capability_levels",
+      "local_key": "id",
+      "foreign_key": "level_id",
+      "description": "Each generic level maps to many capability-specific level definitions"
+    }
+  ],
+
+  "sample_records": [
+    {
+      "id": "lvl-uuid-000",
+      "level_no": 0,
+      "level_code": "L0",
+      "level_label": "No exposure",
+      "generic_definition": "No working exposure; not yet ready for assessment or autonomous execution."
+    },
+    {
+      "id": "lvl-uuid-001",
+      "level_no": 1,
+      "level_code": "L1",
+      "level_label": "Basic awareness",
+      "generic_definition": "Understands the basics and can support simple tasks."
     }
   ]
 }

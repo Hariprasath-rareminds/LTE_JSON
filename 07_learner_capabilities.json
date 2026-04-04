@@ -1,7 +1,6 @@
-
 {
   "table_name": "learner_capabilities",
-  "description": "Per-learner capability scores, gap analysis, and role readiness data. One row per learner + capability + learning path + role. This is the single source of truth for the gap engine — current level, required level, gap, and recommendation priority all live here.",
+  "description": "Per-learner capability gap analysis and role readiness data. One row per learner + capability + learning path + role. This is the single source of truth for the gap engine — required level, gap, recommendation context, and badge attainment all live here.",
   "primary_key": "id",
 
   "fields": [
@@ -26,7 +25,7 @@
       "type": "uuid",
       "required": true,
       "foreign_key": "capabilities.id",
-      "description": "Capability associated with this record. This is the core unit used for gap analysis and progression.",
+      "description": "Capability associated with this record. Core unit used for gap analysis and progression.",
       "example": "cap-001"
     },
     {
@@ -46,65 +45,60 @@
       "example": "role-001"
     },
     {
-      "name": "current_score",
-      "type": "integer",
-      "required": true,
-      "description": "Raw capability score 0–100 derived from evaluation or assessments",
-      "example": 20
-    },
-    {
       "name": "current_level",
       "type": "integer",
       "required": true,
       "enum": [0, 1, 2, 3, 4],
-      "description": "Learner's current capability level on the L0–L4 scale",
-      "example": 1
+      "default": 0,
+      "description": "Learner's current capability level on the L0–L4 scale. Defaults to L0 (no exposure) at record creation. L0=no exposure, L1=awareness, L2=working knowledge, L3=applied skill, L4=mastery.",
+      "example": 0
     },
     {
       "name": "required_level",
       "type": "integer",
       "required": true,
       "enum": [0, 1, 2, 3, 4],
-      "description": "Minimum capability level required by the role",
+      "description": "Minimum capability level required by the role. Sourced from role_capability_map.required_level at the time the learning path was generated.",
       "example": 3
     },
     {
       "name": "gap",
       "type": "integer",
       "required": true,
-      "description": "Computed gap = required_level - current_level",
-      "example": 2
+      "description": "Computed gap = required_level - current_level. Positive means learner needs improvement. Zero or negative means no gap.",
+      "example": 3
     },
     {
       "name": "has_gap",
       "type": "boolean",
       "required": true,
-      "default": false,
-      "description": "True if gap > 0",
+      "default": true,
+      "description": "True if gap > 0. Used by the recommendation engine to identify capabilities needing course assignments.",
       "example": true
     },
     {
       "name": "gap_score",
       "type": "integer",
       "required": true,
-      "description": "Gap expressed as a 0–100 score for prioritization",
+      "description": "Gap expressed as a 0–100 score for path prioritization and ranking.",
       "example": 60
     },
     {
-      "name": "priority_band",
+      "name": "badge",
       "type": "varchar",
       "required": false,
       "nullable": true,
-      "enum": ["A", "B"],
-      "description": "Recommendation priority band",
-      "example": "A"
+      "enum": ["learner", "skilled", "advance"],
+      "default": null,
+      "description": "Badge earned by the learner for this capability. Null until a badge threshold is reached. learner = foundational completion, skilled = intermediate proficiency, advance = high-level mastery.",
+      "example": "skilled"
     },
     {
       "name": "why_needed",
       "type": "text",
       "required": false,
       "nullable": true,
-      "description": "Why this capability is needed",
+      "description": "Why this capability is needed for the learner's target role.",
       "example": "Monitor production systems and diagnose runtime issues"
     },
     {
@@ -112,7 +106,7 @@
       "type": "text",
       "required": false,
       "nullable": true,
-      "description": "How the learner should build this capability",
+      "description": "How the learner should build this capability.",
       "example": "Complete observability training with logging and monitoring tools"
     },
     {
@@ -135,22 +129,32 @@
     {
       "name": "chk_current_level_range",
       "type": "check",
-      "rule": "current_level >= 0 AND current_level <= 4"
+      "rule": "current_level >= 0 AND current_level <= 4",
+      "description": "current_level must be on the L0–L4 scale"
     },
     {
       "name": "chk_required_level_range",
       "type": "check",
-      "rule": "required_level >= 0 AND required_level <= 4"
+      "rule": "required_level >= 0 AND required_level <= 4",
+      "description": "required_level must be on the L0–L4 scale"
     },
     {
       "name": "chk_gap_computed",
       "type": "check",
-      "rule": "gap = required_level - current_level"
+      "rule": "gap = required_level - current_level",
+      "description": "gap must always equal required_level - current_level"
     },
     {
       "name": "chk_has_gap_consistent",
       "type": "check",
-      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)"
+      "rule": "(gap > 0 AND has_gap = true) OR (gap <= 0 AND has_gap = false)",
+      "description": "has_gap must be true when gap > 0 and false otherwise"
+    },
+    {
+      "name": "chk_badge_values",
+      "type": "check",
+      "rule": "badge IN ('learner', 'skilled', 'advance') OR badge IS NULL",
+      "description": "badge must be one of the defined enum values or null"
     }
   ],
 
@@ -159,32 +163,38 @@
       "name": "idx_learner_capabilities_unique",
       "columns": ["learner_id", "capability_id", "learning_path_id", "role_id"],
       "type": "composite",
-      "unique": true
+      "unique": true,
+      "description": "One capability record per learner per capability per path per role — prevents duplicates"
     },
     {
       "name": "idx_learner_capabilities_learner_path_role",
       "columns": ["learner_id", "learning_path_id", "role_id"],
-      "type": "composite"
+      "type": "composite",
+      "description": "Fetch all capabilities for a learner scoped to a specific path and role"
     },
     {
       "name": "idx_learner_capabilities_has_gap",
       "columns": ["learner_id", "has_gap"],
-      "type": "composite"
+      "type": "composite",
+      "description": "Fetch all capabilities where learner has a gap — primary input to course recommendation engine"
     },
     {
-      "name": "idx_learner_capabilities_priority_band",
-      "columns": ["learner_id", "priority_band"],
-      "type": "composite"
+      "name": "idx_learner_capabilities_badge",
+      "columns": ["learner_id", "badge"],
+      "type": "composite",
+      "description": "Fetch all badge-earned capabilities for a learner for dashboard and profile display"
     },
     {
       "name": "idx_learner_capabilities_role_capability",
       "columns": ["role_id", "capability_id"],
-      "type": "composite"
+      "type": "composite",
+      "description": "Look up required level for a capability within a role"
     },
     {
       "name": "idx_learner_capabilities_learner_capability",
       "columns": ["learner_id", "capability_id"],
-      "type": "composite"
+      "type": "composite",
+      "description": "Fetch all path/role records for a learner scoped to a specific capability"
     }
   ],
 
@@ -193,47 +203,52 @@
       "type": "many_to_one",
       "related_table": "learner_profiles",
       "local_key": "learner_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each capability record belongs to one learner"
     },
     {
       "type": "many_to_one",
       "related_table": "capabilities",
       "local_key": "capability_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each record references a capability definition"
     },
     {
       "type": "many_to_one",
       "related_table": "learning_paths",
       "local_key": "learning_path_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each capability record is scoped to one learning path"
     },
     {
       "type": "many_to_one",
       "related_table": "roles",
       "local_key": "role_id",
-      "foreign_key": "id"
+      "foreign_key": "id",
+      "description": "Each capability record is assessed against one role"
     },
     {
       "type": "many_to_one",
       "related_table": "role_capability_map",
       "local_key": ["role_id", "capability_id"],
-      "foreign_key": ["role_id", "capability_id"]
+      "foreign_key": ["role_id", "capability_id"],
+      "description": "required_level is sourced from role_capability_map at path generation time"
     }
-  ], 
-   "sample_records": [
+  ],
+
+  "sample_records": [
     {
       "id": "lc-001",
       "learner_id": "learner-001",
       "capability_id": "cap-004",
       "learning_path_id": "path-001",
       "role_id": "role-001",
-      "current_score": 20,
-      "current_level": 1,
+      "current_level": 0,
       "required_level": 3,
-      "gap": 2,
+      "gap": 3,
       "has_gap": true,
       "gap_score": 60,
-      "priority_band": "A",
+      "badge": null,
       "why_needed": "Monitor production systems and diagnose runtime issues",
       "how_to_build": "Learn logging, debugging, and monitoring tools",
       "created_at": "2024-01-01T00:00:00Z",
@@ -245,13 +260,12 @@
       "capability_id": "cap-002",
       "learning_path_id": "path-001",
       "role_id": "role-001",
-      "current_score": 40,
-      "current_level": 1,
+      "current_level": 0,
       "required_level": 3,
-      "gap": 2,
+      "gap": 3,
       "has_gap": true,
       "gap_score": 40,
-      "priority_band": "A",
+      "badge": "learner",
       "why_needed": "Build scalable backend systems",
       "how_to_build": "Study APIs and database optimization",
       "created_at": "2024-01-01T00:00:00Z",
@@ -263,13 +277,12 @@
       "capability_id": "cap-001",
       "learning_path_id": "path-001",
       "role_id": "role-001",
-      "current_score": 50,
-      "current_level": 2,
+      "current_level": 0,
       "required_level": 2,
-      "gap": 0,
-      "has_gap": false,
+      "gap": 2,
+      "has_gap": true,
       "gap_score": 0,
-      "priority_band": null,
+      "badge": "skilled",
       "why_needed": null,
       "how_to_build": null,
       "created_at": "2024-01-01T00:00:00Z",
@@ -281,13 +294,12 @@
       "capability_id": "cap-010",
       "learning_path_id": "path-002",
       "role_id": "role-002",
-      "current_score": 40,
-      "current_level": 1,
+      "current_level": 0,
       "required_level": 2,
-      "gap": 1,
+      "gap": 2,
       "has_gap": true,
       "gap_score": 20,
-      "priority_band": "B",
+      "badge": null,
       "why_needed": "Ensure code reliability",
       "how_to_build": "Practice testing and CI/CD",
       "created_at": "2024-02-01T00:00:00Z",
@@ -299,13 +311,12 @@
       "capability_id": "cap-003",
       "learning_path_id": "path-003",
       "role_id": "role-004",
-      "current_score": 50,
-      "current_level": 2,
+      "current_level": 0,
       "required_level": 4,
-      "gap": 2,
+      "gap": 4,
       "has_gap": true,
       "gap_score": 50,
-      "priority_band": "A",
+      "badge": "advance",
       "why_needed": "Build ML models",
       "how_to_build": "Work on real ML projects",
       "created_at": "2024-02-15T00:00:00Z",

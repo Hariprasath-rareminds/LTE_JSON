@@ -46,6 +46,16 @@
       "example": 42.50
     },
     {
+      "name": "badge",
+      "type": "varchar",
+      "required": false,
+      "nullable": true,
+      "enum": ["developing", "skilled", "mastery"],
+      "default": null,
+      "description": "Badge earned by the learner for this learning path. Null until a badge threshold is reached. developing = early-stage progress, skilled = intermediate proficiency achieved, mastery = full path completed at high proficiency.",
+      "example": "skilled"
+    },
+    {
       "name": "level",
       "type": "integer",
       "required": true,
@@ -117,6 +127,21 @@
     }
   ],
 
+  "constraints": [
+    {
+      "name": "chk_badge_values",
+      "type": "check",
+      "rule": "badge IN ('developing', 'skilled', 'mastery') OR badge IS NULL",
+      "description": "badge must be one of the defined enum values or null"
+    },
+    {
+      "name": "chk_badge_only_on_progress",
+      "type": "check",
+      "rule": "badge IS NULL OR status IN ('in_progress', 'completed')",
+      "description": "A badge can only be awarded once the path has been started"
+    }
+  ],
+
   "indexes": [
     {
       "name": "idx_learning_paths_learner_track",
@@ -157,6 +182,12 @@
       "name": "idx_learning_paths_level",
       "columns": ["level"],
       "description": "Filter learning paths by difficulty level (1–5)"
+    },
+    {
+      "name": "idx_learning_paths_learner_badge",
+      "columns": ["learner_id", "badge"],
+      "type": "composite",
+      "description": "Fetch all badge-earned paths for a learner for dashboard and profile display"
     }
   ],
 
@@ -196,13 +227,14 @@
     }
   ],
 
-  "learning_paths": [
+  "sample_records": [
     {
       "id": "path-001",
       "learning_track_id": "track-001",
       "learner_id": "learner-001",
       "role_id": "role-001",
       "role_readiness_percentage": 65.50,
+      "badge": "skilled",
       "level": 1,
       "status": "in_progress",
       "is_active": true,
@@ -212,6 +244,40 @@
       "completed_at": null,
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-15T00:00:00Z"
+    },
+    {
+      "id": "path-002",
+      "learning_track_id": "track-002",
+      "learner_id": "learner-002",
+      "role_id": "role-002",
+      "role_readiness_percentage": 100.00,
+      "badge": "mastery",
+      "level": 3,
+      "status": "completed",
+      "is_active": false,
+      "version_no": 1,
+      "is_latest": true,
+      "started_at": "2024-02-01T00:00:00Z",
+      "completed_at": "2024-05-01T00:00:00Z",
+      "created_at": "2024-02-01T00:00:00Z",
+      "updated_at": "2024-05-01T00:00:00Z"
+    },
+    {
+      "id": "path-003",
+      "learning_track_id": "track-003",
+      "learner_id": "learner-003",
+      "role_id": "role-003",
+      "role_readiness_percentage": 15.00,
+      "badge": null,
+      "level": 2,
+      "status": "in_progress",
+      "is_active": true,
+      "version_no": 1,
+      "is_latest": true,
+      "started_at": "2024-03-10T00:00:00Z",
+      "completed_at": null,
+      "created_at": "2024-03-10T00:00:00Z",
+      "updated_at": "2024-03-10T00:00:00Z"
     }
   ]
 }

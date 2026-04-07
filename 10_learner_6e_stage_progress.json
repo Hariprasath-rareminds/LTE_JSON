@@ -70,9 +70,8 @@
     {
       "name": "completed_at",
       "type": "timestamp",
-      "required": false,
-      "nullable": true,
-      "description": "When the learner completed this stage. Null while in_progress.",
+      "required": true,
+      "description": "When the learner completed this stage. Set to sentinel value 0001-01-01T00:00:00Z while stage is in_progress. Populated with actual completion timestamp when status moves to completed.",
       "example": "2024-01-20T00:00:00Z"
     },
     {
@@ -169,7 +168,7 @@
       "stage_order": 2,
       "status": "in_progress",
       "started_at": "2024-01-21T00:00:00Z",
-      "completed_at": null,
+      "completed_at": "0001-01-01T00:00:00Z",
       "time_spent_seconds": 1200,
       "created_at": "2024-01-21T00:00:00Z",
       "updated_at": "2024-01-21T00:00:00Z"

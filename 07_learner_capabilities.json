@@ -87,17 +87,18 @@
       "name": "badge",
       "type": "varchar",
       "required": false,
-      "nullable": true,
-      "enum": ["learner", "skilled", "advance"],
-      "default": null,
-      "description": "Badge earned by the learner for this capability. Null until a badge threshold is reached. learner = foundational completion, skilled = intermediate proficiency, advance = high-level mastery.",
+      "nullable": false,
+      "enum": ["none", "learner", "skilled", "advance"],
+      "default": "none",
+      "description": "Badge earned by the learner for this capability. Defaults to none until a badge threshold is reached. learner = foundational completion, skilled = intermediate proficiency, advance = high-level mastery.",
       "example": "skilled"
     },
     {
       "name": "why_needed",
       "type": "text",
       "required": false,
-      "nullable": true,
+      "nullable": false,
+      "default": "Not provided",
       "description": "Why this capability is needed for the learner's target role.",
       "example": "Monitor production systems and diagnose runtime issues"
     },
@@ -105,7 +106,8 @@
       "name": "how_to_build",
       "type": "text",
       "required": false,
-      "nullable": true,
+      "nullable": false,
+      "default": "Not provided",
       "description": "How the learner should build this capability.",
       "example": "Complete observability training with logging and monitoring tools"
     },
@@ -113,6 +115,8 @@
       "name": "created_at",
       "type": "timestamp",
       "required": true,
+      "nullable": false,
+      "default": "0000-00-00 00:00:00",
       "description": "Record creation timestamp",
       "example": "2024-01-01T00:00:00Z"
     },
@@ -120,6 +124,8 @@
       "name": "updated_at",
       "type": "timestamp",
       "required": true,
+      "nullable": false,
+      "default": "0000-00-00 00:00:00",
       "description": "Last update timestamp",
       "example": "2024-01-01T00:00:00Z"
     }
@@ -153,8 +159,8 @@
     {
       "name": "chk_badge_values",
       "type": "check",
-      "rule": "badge IN ('learner', 'skilled', 'advance') OR badge IS NULL",
-      "description": "badge must be one of the defined enum values or null"
+      "rule": "badge IN ('none', 'learner', 'skilled', 'advance')",
+      "description": "badge must be one of the defined enum values"
     }
   ],
 
@@ -248,7 +254,7 @@
       "gap": 3,
       "has_gap": true,
       "gap_score": 60,
-      "badge": null,
+      "badge": "none",
       "why_needed": "Monitor production systems and diagnose runtime issues",
       "how_to_build": "Learn logging, debugging, and monitoring tools",
       "created_at": "2024-01-01T00:00:00Z",
@@ -283,8 +289,8 @@
       "has_gap": true,
       "gap_score": 0,
       "badge": "skilled",
-      "why_needed": null,
-      "how_to_build": null,
+      "why_needed": "Not provided",
+      "how_to_build": "Not provided",
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
     },
@@ -299,7 +305,7 @@
       "gap": 2,
       "has_gap": true,
       "gap_score": 20,
-      "badge": null,
+      "badge": "none",
       "why_needed": "Ensure code reliability",
       "how_to_build": "Practice testing and CI/CD",
       "created_at": "2024-02-01T00:00:00Z",

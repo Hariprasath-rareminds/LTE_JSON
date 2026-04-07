@@ -56,10 +56,10 @@
     {
       "name": "current_stage",
       "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "enum": ["engage", "explore", "explain", "express", "empower", "evolve"],
-      "description": "The 6E stage the learner is currently active in. Null if not_started. Updated each time a stage row is inserted in learner_6e_stage_progress.",
+      "required": true,
+      "enum": ["none", "engage", "explore", "explain", "express", "empower", "evolve"],
+      "default": "none",
+      "description": "The 6E stage the learner is currently active in. Set to none if module is not_started. Updated each time a stage row is inserted in learner_6e_stage_progress.",
       "example": "explore"
     },
     {
@@ -89,18 +89,18 @@
     {
       "name": "artifact_approval_status",
       "type": "varchar",
-      "required": false,
-      "nullable": true,
-      "enum": ["pending", "under_review", "approved", "returned_for_rework", "rejected"],
-      "description": "Current status of the final artifact evaluation. Null until artifact is submitted. Set to approved when evaluation flow completes with approval — this is the trigger that unlocks the next module.",
+      "required": true,
+      "enum": ["not_submitted", "pending", "under_review", "approved", "returned_for_rework", "rejected"],
+      "default": "not_submitted",
+      "description": "Current status of the final artifact evaluation. Defaults to not_submitted until artifact is first submitted. Set to approved when evaluation flow completes with approval — this is the trigger that unlocks the next module.",
       "example": "under_review"
     },
     {
       "name": "last_activity_at",
       "type": "timestamp",
-      "required": false,
-      "nullable": true,
-      "description": "Timestamp of most recent learner activity in this module",
+      "required": true,
+      "default": "created_at",
+      "description": "Timestamp of most recent learner activity in this module. Defaults to created_at when no activity has occurred yet.",
       "example": "2024-01-21T00:00:00Z"
     },
     {
@@ -199,7 +199,6 @@
     }
   ],
 
-
   "sample_records": [
     {
       "id": "lmp-001",
@@ -212,7 +211,7 @@
       "stages_completed": 1,
       "completion_percentage": 17,
       "artifact_submitted": false,
-      "artifact_approval_status": null,
+      "artifact_approval_status": "not_submitted",
       "last_activity_at": "2024-01-21T00:00:00Z",
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-21T00:00:00Z"
@@ -224,12 +223,12 @@
       "course_id": "SE-BE-OBS-01",
       "module_id": "mod-002",
       "module_status": "not_started",
-      "current_stage": null,
+      "current_stage": "none",
       "stages_completed": 0,
       "completion_percentage": 0,
       "artifact_submitted": false,
-      "artifact_approval_status": null,
-      "last_activity_at": null,
+      "artifact_approval_status": "not_submitted",
+      "last_activity_at": "2024-01-15T00:00:00Z",
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-15T00:00:00Z"
     }

@@ -52,7 +52,7 @@
     },
     {
       "name": "topics",
-      "type": "varchar",
+      "type": "JSON", 
       "required": true,
       "description": "Core topics covered in this learning track",
       "example": "Node.js/Python, REST APIs, Database design, Authentication"

@@ -44,7 +44,6 @@
       "description": "Course from the course catalog. Each course maps to one capability at one proficiency level.",
       "example": "crs-ta-l1"
     },
-
     {
       "name": "sequence_no",
       "type": "integer",
@@ -59,7 +58,6 @@
       "description": "Order of this course within the same capability gap. e.g. for a gap of 3, this is 1, 2, or 3.",
       "example": 1
     },
-
     {
       "name": "from_level",
       "type": "integer",
@@ -76,7 +74,6 @@
       "description": "Capability level the learner reaches when this course artifact is approved. Denormalized from courses.to_level.",
       "example": 1
     },
-
     {
       "name": "current_score",
       "type": "integer",
@@ -126,16 +123,18 @@
       "name": "priority_band",
       "type": "varchar",
       "required": false,
-      "nullable": true,
-      "enum": ["A", "B"],
-      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, null = no gap or not yet prioritized.",
+      "nullable": false,
+      "enum": ["none", "A", "B"],
+      "default": "none",
+      "description": "Recommendation priority band. A = highest priority gap, B = secondary gap, none = no gap or not yet prioritized.",
       "example": "A"
     },
     {
       "name": "why_needed",
       "type": "text",
       "required": false,
-      "nullable": true,
+      "nullable": false,
+      "default": "Not provided",
       "description": "Why this capability is needed for the learner's target role. Populated for priority A and B rows.",
       "example": "Monitor production systems and diagnose runtime issues"
     },
@@ -143,11 +142,11 @@
       "name": "how_to_build",
       "type": "text",
       "required": false,
-      "nullable": true,
+      "nullable": false,
+      "default": "Not provided",
       "description": "How the learner should build this capability. Populated for priority A and B rows.",
       "example": "Complete observability course with logging, debugging, and monitoring tools"
     },
-
     {
       "name": "status",
       "type": "varchar",
@@ -161,10 +160,10 @@
       "name": "badge",
       "type": "varchar",
       "required": false,
-      "nullable": true,
-      "enum": ["Qualified", "Pro"],
-      "default": null,
-      "description": "Badge earned by the learner upon completing this course. Null until completed. 'Qualified' on standard completion; 'Pro' on exceptional performance.",
+      "nullable": false,
+      "enum": ["none", "Qualified", "Pro"],
+      "default": "none",
+      "description": "Badge earned by the learner upon completing this course. Defaults to none until completed. 'Qualified' on standard completion; 'Pro' on exceptional performance.",
       "example": "Qualified"
     },
     {
@@ -179,7 +178,8 @@
       "name": "started_at",
       "type": "timestamp",
       "required": false,
-      "nullable": true,
+      "nullable": false,
+      "default": "0000-00-00 00:00:00",
       "description": "When the learner started this course",
       "example": "2024-01-15T00:00:00Z"
     },
@@ -187,20 +187,25 @@
       "name": "completed_at",
       "type": "timestamp",
       "required": false,
-      "nullable": true,
+      "nullable": false,
+      "default": "0000-00-00 00:00:00",
       "description": "When the learner completed this course (all artifacts approved)",
-      "example": null
+      "example": "0000-00-00 00:00:00"
     },
     {
       "name": "created_at",
       "type": "timestamp",
       "required": true,
+      "nullable": false,
+      "default": "0000-00-00 00:00:00",
       "example": "2024-01-15T00:00:00Z"
     },
     {
       "name": "updated_at",
       "type": "timestamp",
       "required": true,
+      "nullable": false,
+      "default": "0000-00-00 00:00:00",
       "example": "2024-01-15T00:00:00Z"
     }
   ],
@@ -233,8 +238,20 @@
     {
       "name": "chk_badge_only_on_completion",
       "type": "check",
-      "rule": "badge IS NULL OR status = 'completed'",
+      "rule": "badge = 'none' OR status = 'completed'",
       "description": "A badge can only be awarded when the course status is completed"
+    },
+    {
+      "name": "chk_badge_values",
+      "type": "check",
+      "rule": "badge IN ('none', 'Qualified', 'Pro')",
+      "description": "badge must be one of the defined enum values"
+    },
+    {
+      "name": "chk_priority_band_values",
+      "type": "check",
+      "rule": "priority_band IN ('none', 'A', 'B')",
+      "description": "priority_band must be one of the defined enum values"
     }
   ],
 
@@ -376,10 +393,10 @@
       "why_needed": "Monitor production systems and diagnose runtime issues",
       "how_to_build": "Complete observability course with logging, debugging, and monitoring tools",
       "status": "in_progress",
-      "badge": null,
+      "badge": "none",
       "completion_percentage": 17,
       "started_at": "2024-02-02T00:00:00Z",
-      "completed_at": null,
+      "completed_at": "0000-00-00 00:00:00",
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-02-02T00:00:00Z"
     },
@@ -403,10 +420,10 @@
       "why_needed": "Build scalable, efficient backend services",
       "how_to_build": "Learn REST/GraphQL principles and database indexing strategies",
       "status": "not_started",
-      "badge": null,
+      "badge": "none",
       "completion_percentage": 0,
-      "started_at": null,
-      "completed_at": null,
+      "started_at": "0000-00-00 00:00:00",
+      "completed_at": "0000-00-00 00:00:00",
       "created_at": "2024-01-15T00:00:00Z",
       "updated_at": "2024-01-15T00:00:00Z"
     }

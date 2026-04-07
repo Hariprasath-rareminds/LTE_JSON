@@ -14,7 +14,7 @@
     },
     {
       "name": "course_id",
-        "type": "uuid",
+      "type": "uuid",
       "required": true,
       "foreign_key": "courses.course_id",
       "description": "Course identifier linked to courses table",

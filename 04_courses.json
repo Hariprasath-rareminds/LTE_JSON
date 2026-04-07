@@ -109,7 +109,7 @@
     {
       "name": "thumbnail_url",
       "type": "varchar",
-      "nullable": true
+      "nullable": false
     },
     {
       "name": "is_active",

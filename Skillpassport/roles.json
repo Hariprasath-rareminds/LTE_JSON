@@ -1,0 +1,265 @@
+{
+  "table_name": "roles",
+  "description": "Role master table. Each role defines a specific work profile with RIASEC attributes, work context, work-style demands, and fitment metadata.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "code",
+      "type": "text",
+      "required": true,
+      "unique": true,
+      "description": "Specific role code. Example: HTT-ROLE-001..086."
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true,
+      "description": "Specific role name."
+    },
+    {
+      "name": "primary_riasec",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "secondary_riasec",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "riasec_code_string",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Combined RIASEC code string. Example: ESC."
+    },
+    {
+      "name": "riasec_reason",
+      "type": "text",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "work_context_summary",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Embedding-ready work context summary."
+    },
+    {
+      "name": "work_style_demands",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Prose description of work-style demands."
+    },
+    {
+      "name": "estimated_plan_weeks",
+      "type": "int",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "fitment_category",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "fitment_confidence",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "is_active",
+      "type": "bool",
+      "required": true,
+      "default": true
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_roles_code_not_empty",
+      "type": "check",
+      "rule": "length(trim(code)) > 0"
+    },
+    {
+      "name": "chk_roles_name_not_empty",
+      "type": "check",
+      "rule": "length(trim(name)) > 0"
+    },
+    {
+      "name": "chk_roles_estimated_plan_weeks_positive",
+      "type": "check",
+      "rule": "estimated_plan_weeks IS NULL OR estimated_plan_weeks > 0"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_roles_code",
+      "columns": [
+        "code"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_roles_code",
+      "columns": [
+        "code"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_roles_name",
+      "columns": [
+        "name"
+      ]
+    },
+    {
+      "name": "idx_roles_is_active",
+      "columns": [
+        "is_active"
+      ]
+    },
+    {
+      "name": "idx_roles_riasec_code_string",
+      "columns": [
+        "riasec_code_string"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "one_to_many",
+      "related_table": "role_domains",
+      "local_key": "id",
+      "foreign_key": "role_id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "role_capability_sequence",
+      "local_key": "id",
+      "foreign_key": "role_id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "embeddings",
+      "local_key": "id",
+      "foreign_key": "entity_id",
+      "description": "When embeddings.entity_type = 'role', embeddings.entity_id references roles.id."
+    }
+  ],
+  "sample_records": [
+    {
+      "id": "role-uuid-001",
+      "code": "HTT-ROLE-001",
+      "name": "Healthcare Support Coordinator",
+      "primary_riasec": [
+        "Social"
+      ],
+      "secondary_riasec": [
+        "Enterprising",
+        "Conventional"
+      ],
+      "riasec_code_string": "SEC",
+      "riasec_reason": "Role requires patient coordination, structured follow-up, and communication with care teams.",
+      "work_context_summary": "Coordinates healthcare support tasks across patients, providers, and documentation systems.",
+      "work_style_demands": "High attention to detail, empathy, organized communication, and consistent documentation.",
+      "estimated_plan_weeks": 12,
+      "fitment_category": [
+        "Coordination",
+        "Documentation"
+      ],
+      "fitment_confidence": [
+        "high",
+        "medium"
+      ],
+      "is_active": true
+    },
+    {
+      "id": "role-uuid-002",
+      "code": "EDT-ROLE-002",
+      "name": "Learning Operations Associate",
+      "primary_riasec": [
+        "Conventional"
+      ],
+      "secondary_riasec": [
+        "Social"
+      ],
+      "riasec_code_string": "CS",
+      "riasec_reason": "Role involves learner support, operational tracking, and structured academic coordination.",
+      "work_context_summary": "Supports learners and instructors through schedules, learning records, and platform operations.",
+      "work_style_demands": "Requires process discipline, responsiveness, and learner-friendly communication.",
+      "estimated_plan_weeks": 10,
+      "fitment_category": [
+        "Operations",
+        "Learner Support"
+      ],
+      "fitment_confidence": [
+        "high",
+        "high"
+      ],
+      "is_active": true
+    },
+    {
+      "id": "role-uuid-003",
+      "code": "RET-ROLE-003",
+      "name": "Retail Inventory Assistant",
+      "primary_riasec": [
+        "Realistic"
+      ],
+      "secondary_riasec": [
+        "Conventional"
+      ],
+      "riasec_code_string": "RC",
+      "riasec_reason": "Role combines hands-on inventory handling with structured stock tracking.",
+      "work_context_summary": "Maintains stock records, supports replenishment, and verifies inventory movement.",
+      "work_style_demands": "Requires physical readiness, accuracy, routine discipline, and checklist-based execution.",
+      "estimated_plan_weeks": 8,
+      "fitment_category": [
+        "Inventory",
+        "Store Operations"
+      ],
+      "fitment_confidence": [
+        "medium",
+        "high"
+      ],
+      "is_active": true
+    },
+    {
+      "id": "role-uuid-004",
+      "code": "FIN-ROLE-004",
+      "name": "Payment Operations Trainee",
+      "primary_riasec": [
+        "Conventional"
+      ],
+      "secondary_riasec": [
+        "Investigative"
+      ],
+      "riasec_code_string": "CI",
+      "riasec_reason": "Role requires transaction checking, exception handling, and analytical review.",
+      "work_context_summary": "Assists in payment processing, reconciliation, and operational exception tracking.",
+      "work_style_demands": "Requires precision, confidentiality, numerical accuracy, and compliance awareness.",
+      "estimated_plan_weeks": 14,
+      "fitment_category": [
+        "Payments",
+        "Back Office"
+      ],
+      "fitment_confidence": [
+        "high",
+        "medium"
+      ],
+      "is_active": true
+    }
+  ]
+}

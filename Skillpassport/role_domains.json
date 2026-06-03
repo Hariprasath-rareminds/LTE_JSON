@@ -1,0 +1,104 @@
+{
+  "table_name": "role_domains",
+  "description": "Bridge table connecting roles to domains. Each record defines a role + domain context.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id"
+    },
+    {
+      "name": "domain_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "domains.id"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_role_domains_role_id_not_null",
+      "type": "check",
+      "rule": "role_id IS NOT NULL"
+    },
+    {
+      "name": "chk_role_domains_domain_id_not_null",
+      "type": "check",
+      "rule": "domain_id IS NOT NULL"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_role_domains_role_domain",
+      "columns": [
+        "role_id",
+        "domain_id"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_role_domains_role_domain",
+      "columns": [
+        "role_id",
+        "domain_id"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_role_domains_role_id",
+      "columns": [
+        "role_id"
+      ]
+    },
+    {
+      "name": "idx_role_domains_domain_id",
+      "columns": [
+        "domain_id"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "domains",
+      "local_key": "domain_id",
+      "foreign_key": "id"
+    }
+  ],
+  "sample_records": [
+    {
+      "id": "rd-uuid-001",
+      "role_id": "role-uuid-001",
+      "domain_id": "dom-uuid-001"
+    },
+    {
+      "id": "rd-uuid-002",
+      "role_id": "role-uuid-002",
+      "domain_id": "dom-uuid-002"
+    },
+    {
+      "id": "rd-uuid-003",
+      "role_id": "role-uuid-003",
+      "domain_id": "dom-uuid-003"
+    },
+    {
+      "id": "rd-uuid-004",
+      "role_id": "role-uuid-004",
+      "domain_id": "dom-uuid-004"
+    }
+  ]
+}

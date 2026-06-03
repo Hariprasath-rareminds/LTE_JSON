@@ -1,0 +1,122 @@
+{
+  "table_name": "embeddings",
+  "description": "Vector embedding table for semantic search. Stores embeddings for entity records such as roles and capabilities.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "entity_type",
+      "type": "text",
+      "required": true,
+      "description": "Type of embedded entity. Example: role or capability."
+    },
+    {
+      "name": "entity_id",
+      "type": "uuid",
+      "required": true,
+      "description": "Referenced entity id. Points to the table identified by entity_type."
+    },
+    {
+      "name": "embedding",
+      "type": "vector",
+      "required": true,
+      "dimensions": 1536,
+      "description": "1536-dimensional vector embedding."
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_embeddings_entity_type_allowed",
+      "type": "check",
+      "rule": "entity_type IN ('role','capability','skill','domain')"
+    },
+    {
+      "name": "chk_embeddings_entity_id_not_null",
+      "type": "check",
+      "rule": "entity_id IS NOT NULL"
+    },
+    {
+      "name": "chk_embeddings_vector_dimensions",
+      "type": "check",
+      "rule": "vector_dims(embedding) = 1536"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_embeddings_entity",
+      "columns": [
+        "entity_type",
+        "entity_id"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_embeddings_entity",
+      "columns": [
+        "entity_type",
+        "entity_id"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_embeddings_entity_type",
+      "columns": [
+        "entity_type"
+      ]
+    },
+    {
+      "name": "idx_embeddings_vector",
+      "columns": [
+        "embedding"
+      ],
+      "type": "vector",
+      "description": "Vector similarity index for embedding search. Use the database-specific vector index type, for example ivfflat or hnsw in pgvector."
+    }
+  ],
+  "relationships": [
+    {
+      "type": "polymorphic_many_to_one",
+      "related_tables": [
+        "roles",
+        "capabilities",
+        "skills",
+        "domains"
+      ],
+      "local_key": "entity_id",
+      "foreign_key": "id",
+      "description": "entity_id references the table represented by entity_type."
+    }
+  ],
+  "sample_records": [
+    {
+      "id": "emb-uuid-001",
+      "entity_type": "role",
+      "entity_id": "role-uuid-001",
+      "embedding": "[1536-dimensional vector]"
+    },
+    {
+      "id": "emb-uuid-002",
+      "entity_type": "role",
+      "entity_id": "role-uuid-002",
+      "embedding": "[1536-dimensional vector]"
+    },
+    {
+      "id": "emb-uuid-003",
+      "entity_type": "capability",
+      "entity_id": "cap-uuid-001",
+      "embedding": "[1536-dimensional vector]"
+    },
+    {
+      "id": "emb-uuid-004",
+      "entity_type": "capability",
+      "entity_id": "cap-uuid-002",
+      "embedding": "[1536-dimensional vector]"
+    }
+  ]
+}

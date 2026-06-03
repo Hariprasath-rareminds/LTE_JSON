@@ -1,0 +1,1197 @@
+{
+  "schemas": [
+    {
+      "table_name": "domains",
+      "description": "Master table for domain categories. Each domain groups roles, capabilities, and learning steps into a business or knowledge context.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "unique": true,
+          "description": "Domain code. Example range: D01..D07."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_domains_code_not_empty",
+          "type": "check",
+          "rule": "length(trim(code)) > 0"
+        },
+        {
+          "name": "chk_domains_name_not_empty",
+          "type": "check",
+          "rule": "length(trim(name)) > 0"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_domains_code",
+          "columns": [
+            "code"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_domains_code",
+          "columns": [
+            "code"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_domains_name",
+          "columns": [
+            "name"
+          ]
+        }
+      ],
+      "relationships": [],
+      "sample_records": [
+        {
+          "id": "dom-uuid-001",
+          "code": "D01",
+          "name": "Healthcare Technology",
+          "description": "Domain covering healthcare workflows, systems, and digital health operations."
+        },
+        {
+          "id": "dom-uuid-002",
+          "code": "D02",
+          "name": "Education Technology",
+          "description": "Domain covering learning platforms, curriculum systems, and learner operations."
+        },
+        {
+          "id": "dom-uuid-003",
+          "code": "D03",
+          "name": "Retail Operations",
+          "description": "Domain covering store operations, customer service, inventory, and retail workflows."
+        },
+        {
+          "id": "dom-uuid-004",
+          "code": "D04",
+          "name": "Financial Services",
+          "description": "Domain covering banking, payments, compliance, and financial operations."
+        }
+      ]
+    },
+    {
+      "table_name": "roles",
+      "description": "Role master table. Each role defines a specific work profile with RIASEC attributes, work context, work-style demands, and fitment metadata.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "unique": true,
+          "description": "Specific role code. Example: HTT-ROLE-001..086."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "description": "Specific role name."
+        },
+        {
+          "name": "primary_riasec",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "secondary_riasec",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "riasec_code_string",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Combined RIASEC code string. Example: ESC."
+        },
+        {
+          "name": "riasec_reason",
+          "type": "text",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "work_context_summary",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Embedding-ready work context summary."
+        },
+        {
+          "name": "work_style_demands",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Prose description of work-style demands."
+        },
+        {
+          "name": "estimated_plan_weeks",
+          "type": "int",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "fitment_category",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "fitment_confidence",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": true,
+          "default": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_roles_code_not_empty",
+          "type": "check",
+          "rule": "length(trim(code)) > 0"
+        },
+        {
+          "name": "chk_roles_name_not_empty",
+          "type": "check",
+          "rule": "length(trim(name)) > 0"
+        },
+        {
+          "name": "chk_roles_estimated_plan_weeks_positive",
+          "type": "check",
+          "rule": "estimated_plan_weeks IS NULL OR estimated_plan_weeks > 0"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_roles_code",
+          "columns": [
+            "code"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_roles_code",
+          "columns": [
+            "code"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_roles_name",
+          "columns": [
+            "name"
+          ]
+        },
+        {
+          "name": "idx_roles_is_active",
+          "columns": [
+            "is_active"
+          ]
+        },
+        {
+          "name": "idx_roles_riasec_code_string",
+          "columns": [
+            "riasec_code_string"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "type": "one_to_many",
+          "related_table": "role_domains",
+          "local_key": "id",
+          "foreign_key": "role_id"
+        },
+        {
+          "type": "one_to_many",
+          "related_table": "role_capability_sequence",
+          "local_key": "id",
+          "foreign_key": "role_id"
+        },
+        {
+          "type": "one_to_many",
+          "related_table": "embeddings",
+          "local_key": "id",
+          "foreign_key": "entity_id",
+          "description": "When embeddings.entity_type = 'role', embeddings.entity_id references roles.id."
+        }
+      ],
+      "sample_records": [
+        {
+          "id": "role-uuid-001",
+          "code": "HTT-ROLE-001",
+          "name": "Healthcare Support Coordinator",
+          "primary_riasec": [
+            "Social"
+          ],
+          "secondary_riasec": [
+            "Enterprising",
+            "Conventional"
+          ],
+          "riasec_code_string": "SEC",
+          "riasec_reason": "Role requires patient coordination, structured follow-up, and communication with care teams.",
+          "work_context_summary": "Coordinates healthcare support tasks across patients, providers, and documentation systems.",
+          "work_style_demands": "High attention to detail, empathy, organized communication, and consistent documentation.",
+          "estimated_plan_weeks": 12,
+          "fitment_category": [
+            "Coordination",
+            "Documentation"
+          ],
+          "fitment_confidence": [
+            "high",
+            "medium"
+          ],
+          "is_active": true
+        },
+        {
+          "id": "role-uuid-002",
+          "code": "EDT-ROLE-002",
+          "name": "Learning Operations Associate",
+          "primary_riasec": [
+            "Conventional"
+          ],
+          "secondary_riasec": [
+            "Social"
+          ],
+          "riasec_code_string": "CS",
+          "riasec_reason": "Role involves learner support, operational tracking, and structured academic coordination.",
+          "work_context_summary": "Supports learners and instructors through schedules, learning records, and platform operations.",
+          "work_style_demands": "Requires process discipline, responsiveness, and learner-friendly communication.",
+          "estimated_plan_weeks": 10,
+          "fitment_category": [
+            "Operations",
+            "Learner Support"
+          ],
+          "fitment_confidence": [
+            "high",
+            "high"
+          ],
+          "is_active": true
+        },
+        {
+          "id": "role-uuid-003",
+          "code": "RET-ROLE-003",
+          "name": "Retail Inventory Assistant",
+          "primary_riasec": [
+            "Realistic"
+          ],
+          "secondary_riasec": [
+            "Conventional"
+          ],
+          "riasec_code_string": "RC",
+          "riasec_reason": "Role combines hands-on inventory handling with structured stock tracking.",
+          "work_context_summary": "Maintains stock records, supports replenishment, and verifies inventory movement.",
+          "work_style_demands": "Requires physical readiness, accuracy, routine discipline, and checklist-based execution.",
+          "estimated_plan_weeks": 8,
+          "fitment_category": [
+            "Inventory",
+            "Store Operations"
+          ],
+          "fitment_confidence": [
+            "medium",
+            "high"
+          ],
+          "is_active": true
+        },
+        {
+          "id": "role-uuid-004",
+          "code": "FIN-ROLE-004",
+          "name": "Payment Operations Trainee",
+          "primary_riasec": [
+            "Conventional"
+          ],
+          "secondary_riasec": [
+            "Investigative"
+          ],
+          "riasec_code_string": "CI",
+          "riasec_reason": "Role requires transaction checking, exception handling, and analytical review.",
+          "work_context_summary": "Assists in payment processing, reconciliation, and operational exception tracking.",
+          "work_style_demands": "Requires precision, confidentiality, numerical accuracy, and compliance awareness.",
+          "estimated_plan_weeks": 14,
+          "fitment_category": [
+            "Payments",
+            "Back Office"
+          ],
+          "fitment_confidence": [
+            "high",
+            "medium"
+          ],
+          "is_active": true
+        }
+      ]
+    },
+    {
+      "table_name": "capabilities",
+      "description": "Capability master table. Each capability represents a work capability that can appear in a role learning sequence and can be broken into skills.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "unique": true,
+          "description": "Capability code. Example: IND-CAP-01..27."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "primary_riasec",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "secondary_riasec",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "work_style_demands",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Prose description of work-style demands."
+        },
+        {
+          "name": "capability_stage",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Stage such as Foundation, Intermediate, Advanced, or similar."
+        },
+        {
+          "name": "fitment_category",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "fitment_confidence",
+          "type": "text_array",
+          "required": false,
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_capabilities_code_not_empty",
+          "type": "check",
+          "rule": "length(trim(code)) > 0"
+        },
+        {
+          "name": "chk_capabilities_name_not_empty",
+          "type": "check",
+          "rule": "length(trim(name)) > 0"
+        },
+        {
+          "name": "chk_capability_stage_allowed",
+          "type": "check",
+          "rule": "capability_stage IS NULL OR capability_stage IN ('Foundation','Intermediate','Advanced','Expert')"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_capabilities_code",
+          "columns": [
+            "code"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_capabilities_code",
+          "columns": [
+            "code"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_capabilities_name",
+          "columns": [
+            "name"
+          ]
+        },
+        {
+          "name": "idx_capabilities_stage",
+          "columns": [
+            "capability_stage"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "type": "one_to_many",
+          "related_table": "skills",
+          "local_key": "id",
+          "foreign_key": "capability_id"
+        },
+        {
+          "type": "one_to_many",
+          "related_table": "role_capability_sequence",
+          "local_key": "id",
+          "foreign_key": "capability_id"
+        },
+        {
+          "type": "one_to_many",
+          "related_table": "embeddings",
+          "local_key": "id",
+          "foreign_key": "entity_id",
+          "description": "When embeddings.entity_type = 'capability', embeddings.entity_id references capabilities.id."
+        }
+      ],
+      "sample_records": [
+        {
+          "id": "cap-uuid-001",
+          "code": "IND-CAP-01",
+          "name": "Documentation Handling",
+          "description": "Ability to create, maintain, and verify operational documentation.",
+          "primary_riasec": [
+            "Conventional"
+          ],
+          "secondary_riasec": [
+            "Social"
+          ],
+          "work_style_demands": "Requires accuracy, consistency, and clear written communication.",
+          "capability_stage": "Foundation",
+          "fitment_category": [
+            "Documentation",
+            "Operations"
+          ],
+          "fitment_confidence": [
+            "high",
+            "medium"
+          ]
+        },
+        {
+          "id": "cap-uuid-002",
+          "code": "IND-CAP-02",
+          "name": "Stakeholder Coordination",
+          "description": "Ability to coordinate with internal and external stakeholders to complete tasks.",
+          "primary_riasec": [
+            "Social"
+          ],
+          "secondary_riasec": [
+            "Enterprising"
+          ],
+          "work_style_demands": "Requires communication, follow-up discipline, and prioritization.",
+          "capability_stage": "Foundation",
+          "fitment_category": [
+            "Coordination",
+            "Communication"
+          ],
+          "fitment_confidence": [
+            "high",
+            "high"
+          ]
+        },
+        {
+          "id": "cap-uuid-003",
+          "code": "IND-CAP-03",
+          "name": "Inventory Tracking",
+          "description": "Ability to track stock movement, stock counts, and inventory records.",
+          "primary_riasec": [
+            "Realistic"
+          ],
+          "secondary_riasec": [
+            "Conventional"
+          ],
+          "work_style_demands": "Requires routine execution, accuracy, and checklist-based verification.",
+          "capability_stage": "Intermediate",
+          "fitment_category": [
+            "Inventory",
+            "Process"
+          ],
+          "fitment_confidence": [
+            "medium",
+            "high"
+          ]
+        },
+        {
+          "id": "cap-uuid-004",
+          "code": "IND-CAP-04",
+          "name": "Transaction Verification",
+          "description": "Ability to review transactions and identify exceptions or mismatches.",
+          "primary_riasec": [
+            "Conventional"
+          ],
+          "secondary_riasec": [
+            "Investigative"
+          ],
+          "work_style_demands": "Requires numerical accuracy, confidentiality, and careful review.",
+          "capability_stage": "Intermediate",
+          "fitment_category": [
+            "Finance Operations",
+            "Quality Check"
+          ],
+          "fitment_confidence": [
+            "high",
+            "medium"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "skills",
+      "description": "Skill master table. Each skill belongs to exactly one capability and breaks that capability into executable skill units.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "unique": true,
+          "description": "Skill code. Example: IND-SK-001..188."
+        },
+        {
+          "name": "capability_id",
+          "type": "uuid",
+          "required": true,
+          "foreign_key": "capabilities.id",
+          "description": "Each skill maps to exactly one capability."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "skill_type",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Skill category such as Documentation, Coordination, Analysis, Process, or similar."
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_skills_code_not_empty",
+          "type": "check",
+          "rule": "length(trim(code)) > 0"
+        },
+        {
+          "name": "chk_skills_name_not_empty",
+          "type": "check",
+          "rule": "length(trim(name)) > 0"
+        },
+        {
+          "name": "chk_skills_capability_id_not_null",
+          "type": "check",
+          "rule": "capability_id IS NOT NULL"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_skills_code",
+          "columns": [
+            "code"
+          ]
+        },
+        {
+          "name": "uq_skills_capability_name",
+          "columns": [
+            "capability_id",
+            "name"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_skills_code",
+          "columns": [
+            "code"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_skills_capability_id",
+          "columns": [
+            "capability_id"
+          ]
+        },
+        {
+          "name": "idx_skills_skill_type",
+          "columns": [
+            "skill_type"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "type": "many_to_one",
+          "related_table": "capabilities",
+          "local_key": "capability_id",
+          "foreign_key": "id"
+        }
+      ],
+      "sample_records": [
+        {
+          "id": "skill-uuid-001",
+          "code": "IND-SK-001",
+          "capability_id": "cap-uuid-001",
+          "name": "Document Data Entry",
+          "description": "Enter structured information into forms, sheets, or operational systems.",
+          "skill_type": "Documentation"
+        },
+        {
+          "id": "skill-uuid-002",
+          "code": "IND-SK-002",
+          "capability_id": "cap-uuid-001",
+          "name": "Record Verification",
+          "description": "Check records for completeness, duplicates, and missing details.",
+          "skill_type": "Documentation"
+        },
+        {
+          "id": "skill-uuid-003",
+          "code": "IND-SK-003",
+          "capability_id": "cap-uuid-002",
+          "name": "Follow-up Communication",
+          "description": "Send clear reminders and updates to stakeholders until closure.",
+          "skill_type": "Coordination"
+        },
+        {
+          "id": "skill-uuid-004",
+          "code": "IND-SK-004",
+          "capability_id": "cap-uuid-004",
+          "name": "Exception Flagging",
+          "description": "Identify transaction mismatches and route them for resolution.",
+          "skill_type": "Analysis"
+        }
+      ]
+    },
+    {
+      "table_name": "role_domains",
+      "description": "Bridge table connecting roles to domains. Each record defines a role + domain context.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "role_id",
+          "type": "uuid",
+          "required": true,
+          "foreign_key": "roles.id"
+        },
+        {
+          "name": "domain_id",
+          "type": "uuid",
+          "required": true,
+          "foreign_key": "domains.id"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_role_domains_role_id_not_null",
+          "type": "check",
+          "rule": "role_id IS NOT NULL"
+        },
+        {
+          "name": "chk_role_domains_domain_id_not_null",
+          "type": "check",
+          "rule": "domain_id IS NOT NULL"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_role_domains_role_domain",
+          "columns": [
+            "role_id",
+            "domain_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_role_domains_role_domain",
+          "columns": [
+            "role_id",
+            "domain_id"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_role_domains_role_id",
+          "columns": [
+            "role_id"
+          ]
+        },
+        {
+          "name": "idx_role_domains_domain_id",
+          "columns": [
+            "domain_id"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "type": "many_to_one",
+          "related_table": "roles",
+          "local_key": "role_id",
+          "foreign_key": "id"
+        },
+        {
+          "type": "many_to_one",
+          "related_table": "domains",
+          "local_key": "domain_id",
+          "foreign_key": "id"
+        }
+      ],
+      "sample_records": [
+        {
+          "id": "rd-uuid-001",
+          "role_id": "role-uuid-001",
+          "domain_id": "dom-uuid-001"
+        },
+        {
+          "id": "rd-uuid-002",
+          "role_id": "role-uuid-002",
+          "domain_id": "dom-uuid-002"
+        },
+        {
+          "id": "rd-uuid-003",
+          "role_id": "role-uuid-003",
+          "domain_id": "dom-uuid-003"
+        },
+        {
+          "id": "rd-uuid-004",
+          "role_id": "role-uuid-004",
+          "domain_id": "dom-uuid-004"
+        }
+      ]
+    },
+    {
+      "table_name": "role_capability_sequence",
+      "description": "Ordered learning plan table that maps each role to a domain-specific sequence of capabilities.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "role_id",
+          "type": "uuid",
+          "required": true,
+          "foreign_key": "roles.id"
+        },
+        {
+          "name": "domain_id",
+          "type": "uuid",
+          "required": true,
+          "foreign_key": "domains.id",
+          "description": "Context the step runs in."
+        },
+        {
+          "name": "capability_id",
+          "type": "uuid",
+          "required": true,
+          "foreign_key": "capabilities.id"
+        },
+        {
+          "name": "sequence_step",
+          "type": "int",
+          "required": true,
+          "description": "Ordered step number. Example: 1..N."
+        },
+        {
+          "name": "capability_priority",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Priority such as Core or Important."
+        },
+        {
+          "name": "required_level",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Required level such as L1, L2, or L3."
+        },
+        {
+          "name": "duration_weeks",
+          "type": "int",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "cumulative_weeks",
+          "type": "int",
+          "required": false,
+          "nullable": true
+        },
+        {
+          "name": "evidence_output",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Assessment artifact or evidence output."
+        },
+        {
+          "name": "why_here",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Sequencing rationale."
+        },
+        {
+          "name": "plan_phase",
+          "type": "text",
+          "required": false,
+          "nullable": true,
+          "description": "Plan phase such as Month 1-2, Month 3-4, or Month 5-6."
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_rcs_sequence_step_positive",
+          "type": "check",
+          "rule": "sequence_step > 0"
+        },
+        {
+          "name": "chk_rcs_duration_weeks_positive",
+          "type": "check",
+          "rule": "duration_weeks IS NULL OR duration_weeks > 0"
+        },
+        {
+          "name": "chk_rcs_cumulative_weeks_positive",
+          "type": "check",
+          "rule": "cumulative_weeks IS NULL OR cumulative_weeks > 0"
+        },
+        {
+          "name": "chk_rcs_required_level_allowed",
+          "type": "check",
+          "rule": "required_level IS NULL OR required_level IN ('L1','L2','L3')"
+        },
+        {
+          "name": "chk_rcs_priority_allowed",
+          "type": "check",
+          "rule": "capability_priority IS NULL OR capability_priority IN ('Core','Important')"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_rcs_role_domain_sequence",
+          "columns": [
+            "role_id",
+            "domain_id",
+            "sequence_step"
+          ]
+        },
+        {
+          "name": "uq_rcs_role_domain_capability",
+          "columns": [
+            "role_id",
+            "domain_id",
+            "capability_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_rcs_role_domain_sequence",
+          "columns": [
+            "role_id",
+            "domain_id",
+            "sequence_step"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_rcs_role_id",
+          "columns": [
+            "role_id"
+          ]
+        },
+        {
+          "name": "idx_rcs_domain_id",
+          "columns": [
+            "domain_id"
+          ]
+        },
+        {
+          "name": "idx_rcs_capability_id",
+          "columns": [
+            "capability_id"
+          ]
+        },
+        {
+          "name": "idx_rcs_required_level",
+          "columns": [
+            "required_level"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "type": "many_to_one",
+          "related_table": "roles",
+          "local_key": "role_id",
+          "foreign_key": "id"
+        },
+        {
+          "type": "many_to_one",
+          "related_table": "domains",
+          "local_key": "domain_id",
+          "foreign_key": "id"
+        },
+        {
+          "type": "many_to_one",
+          "related_table": "capabilities",
+          "local_key": "capability_id",
+          "foreign_key": "id"
+        }
+      ],
+      "sample_records": [
+        {
+          "id": "rcs-uuid-001",
+          "role_id": "role-uuid-001",
+          "domain_id": "dom-uuid-001",
+          "capability_id": "cap-uuid-001",
+          "sequence_step": 1,
+          "capability_priority": "Core",
+          "required_level": "L1",
+          "duration_weeks": 3,
+          "cumulative_weeks": 3,
+          "evidence_output": "Completed patient support documentation checklist.",
+          "why_here": "Documentation accuracy is required before higher coordination tasks.",
+          "plan_phase": "Month 1-2"
+        },
+        {
+          "id": "rcs-uuid-002",
+          "role_id": "role-uuid-001",
+          "domain_id": "dom-uuid-001",
+          "capability_id": "cap-uuid-002",
+          "sequence_step": 2,
+          "capability_priority": "Important",
+          "required_level": "L2",
+          "duration_weeks": 4,
+          "cumulative_weeks": 7,
+          "evidence_output": "Stakeholder follow-up tracker with closure notes.",
+          "why_here": "Coordination should build on accurate records and case context.",
+          "plan_phase": "Month 1-2"
+        },
+        {
+          "id": "rcs-uuid-003",
+          "role_id": "role-uuid-003",
+          "domain_id": "dom-uuid-003",
+          "capability_id": "cap-uuid-003",
+          "sequence_step": 1,
+          "capability_priority": "Core",
+          "required_level": "L1",
+          "duration_weeks": 4,
+          "cumulative_weeks": 4,
+          "evidence_output": "Inventory count sheet and stock discrepancy log.",
+          "why_here": "Inventory tracking is the base capability for retail operations execution.",
+          "plan_phase": "Month 1-2"
+        },
+        {
+          "id": "rcs-uuid-004",
+          "role_id": "role-uuid-004",
+          "domain_id": "dom-uuid-004",
+          "capability_id": "cap-uuid-004",
+          "sequence_step": 1,
+          "capability_priority": "Core",
+          "required_level": "L2",
+          "duration_weeks": 5,
+          "cumulative_weeks": 5,
+          "evidence_output": "Transaction review report with flagged exceptions.",
+          "why_here": "Verification is required before reconciliation and exception resolution.",
+          "plan_phase": "Month 1-2"
+        }
+      ]
+    },
+    {
+      "table_name": "embeddings",
+      "description": "Vector embedding table for semantic search. Stores embeddings for entity records such as roles and capabilities.",
+      "primary_key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true,
+          "primary_key": true
+        },
+        {
+          "name": "entity_type",
+          "type": "text",
+          "required": true,
+          "description": "Type of embedded entity. Example: role or capability."
+        },
+        {
+          "name": "entity_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Referenced entity id. Points to the table identified by entity_type."
+        },
+        {
+          "name": "embedding",
+          "type": "vector",
+          "required": true,
+          "dimensions": 1536,
+          "description": "1536-dimensional vector embedding."
+        }
+      ],
+      "constraints": [
+        {
+          "name": "chk_embeddings_entity_type_allowed",
+          "type": "check",
+          "rule": "entity_type IN ('role','capability','skill','domain')"
+        },
+        {
+          "name": "chk_embeddings_entity_id_not_null",
+          "type": "check",
+          "rule": "entity_id IS NOT NULL"
+        },
+        {
+          "name": "chk_embeddings_vector_dimensions",
+          "type": "check",
+          "rule": "vector_dims(embedding) = 1536"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_embeddings_entity",
+          "columns": [
+            "entity_type",
+            "entity_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_embeddings_entity",
+          "columns": [
+            "entity_type",
+            "entity_id"
+          ],
+          "type": "unique"
+        },
+        {
+          "name": "idx_embeddings_entity_type",
+          "columns": [
+            "entity_type"
+          ]
+        },
+        {
+          "name": "idx_embeddings_vector",
+          "columns": [
+            "embedding"
+          ],
+          "type": "vector",
+          "description": "Vector similarity index for embedding search. Use the database-specific vector index type, for example ivfflat or hnsw in pgvector."
+        }
+      ],
+      "relationships": [
+        {
+          "type": "polymorphic_many_to_one",
+          "related_tables": [
+            "roles",
+            "capabilities",
+            "skills",
+            "domains"
+          ],
+          "local_key": "entity_id",
+          "foreign_key": "id",
+          "description": "entity_id references the table represented by entity_type."
+        }
+      ],
+      "sample_records": [
+        {
+          "id": "emb-uuid-001",
+          "entity_type": "role",
+          "entity_id": "role-uuid-001",
+          "embedding": "[1536-dimensional vector]"
+        },
+        {
+          "id": "emb-uuid-002",
+          "entity_type": "role",
+          "entity_id": "role-uuid-002",
+          "embedding": "[1536-dimensional vector]"
+        },
+        {
+          "id": "emb-uuid-003",
+          "entity_type": "capability",
+          "entity_id": "cap-uuid-001",
+          "embedding": "[1536-dimensional vector]"
+        },
+        {
+          "id": "emb-uuid-004",
+          "entity_type": "capability",
+          "entity_id": "cap-uuid-002",
+          "embedding": "[1536-dimensional vector]"
+        }
+      ]
+    }
+  ]
+}

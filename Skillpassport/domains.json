@@ -1,0 +1,93 @@
+{
+  "table_name": "domains",
+  "description": "Master table for domain categories. Each domain groups roles, capabilities, and learning steps into a business or knowledge context.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "code",
+      "type": "text",
+      "required": true,
+      "unique": true,
+      "description": "Domain code. Example range: D01..D07."
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false,
+      "nullable": true
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_domains_code_not_empty",
+      "type": "check",
+      "rule": "length(trim(code)) > 0"
+    },
+    {
+      "name": "chk_domains_name_not_empty",
+      "type": "check",
+      "rule": "length(trim(name)) > 0"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_domains_code",
+      "columns": [
+        "code"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_domains_code",
+      "columns": [
+        "code"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_domains_name",
+      "columns": [
+        "name"
+      ]
+    }
+  ],
+  "relationships": [],
+  "sample_records": [
+    {
+      "id": "dom-uuid-001",
+      "code": "D01",
+      "name": "Healthcare Technology",
+      "description": "Domain covering healthcare workflows, systems, and digital health operations."
+    },
+    {
+      "id": "dom-uuid-002",
+      "code": "D02",
+      "name": "Education Technology",
+      "description": "Domain covering learning platforms, curriculum systems, and learner operations."
+    },
+    {
+      "id": "dom-uuid-003",
+      "code": "D03",
+      "name": "Retail Operations",
+      "description": "Domain covering store operations, customer service, inventory, and retail workflows."
+    },
+    {
+      "id": "dom-uuid-004",
+      "code": "D04",
+      "name": "Financial Services",
+      "description": "Domain covering banking, payments, compliance, and financial operations."
+    }
+  ]
+}

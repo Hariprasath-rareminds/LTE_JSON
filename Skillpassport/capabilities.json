@@ -1,0 +1,226 @@
+{
+  "table_name": "capabilities",
+  "description": "Capability master table. Each capability represents a work capability that can appear in a role learning sequence and can be broken into skills.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "code",
+      "type": "text",
+      "required": true,
+      "unique": true,
+      "description": "Capability code. Example: IND-CAP-01..27."
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "primary_riasec",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "secondary_riasec",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "work_style_demands",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Prose description of work-style demands."
+    },
+    {
+      "name": "capability_stage",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Stage such as Foundation, Intermediate, Advanced, or similar."
+    },
+    {
+      "name": "fitment_category",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "fitment_confidence",
+      "type": "text_array",
+      "required": false,
+      "nullable": true
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_capabilities_code_not_empty",
+      "type": "check",
+      "rule": "length(trim(code)) > 0"
+    },
+    {
+      "name": "chk_capabilities_name_not_empty",
+      "type": "check",
+      "rule": "length(trim(name)) > 0"
+    },
+    {
+      "name": "chk_capability_stage_allowed",
+      "type": "check",
+      "rule": "capability_stage IS NULL OR capability_stage IN ('Foundation','Intermediate','Advanced','Expert')"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_capabilities_code",
+      "columns": [
+        "code"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_capabilities_code",
+      "columns": [
+        "code"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_capabilities_name",
+      "columns": [
+        "name"
+      ]
+    },
+    {
+      "name": "idx_capabilities_stage",
+      "columns": [
+        "capability_stage"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "one_to_many",
+      "related_table": "skills",
+      "local_key": "id",
+      "foreign_key": "capability_id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "role_capability_sequence",
+      "local_key": "id",
+      "foreign_key": "capability_id"
+    },
+    {
+      "type": "one_to_many",
+      "related_table": "embeddings",
+      "local_key": "id",
+      "foreign_key": "entity_id",
+      "description": "When embeddings.entity_type = 'capability', embeddings.entity_id references capabilities.id."
+    }
+  ],
+  "sample_records": [
+    {
+      "id": "cap-uuid-001",
+      "code": "IND-CAP-01",
+      "name": "Documentation Handling",
+      "description": "Ability to create, maintain, and verify operational documentation.",
+      "primary_riasec": [
+        "Conventional"
+      ],
+      "secondary_riasec": [
+        "Social"
+      ],
+      "work_style_demands": "Requires accuracy, consistency, and clear written communication.",
+      "capability_stage": "Foundation",
+      "fitment_category": [
+        "Documentation",
+        "Operations"
+      ],
+      "fitment_confidence": [
+        "high",
+        "medium"
+      ]
+    },
+    {
+      "id": "cap-uuid-002",
+      "code": "IND-CAP-02",
+      "name": "Stakeholder Coordination",
+      "description": "Ability to coordinate with internal and external stakeholders to complete tasks.",
+      "primary_riasec": [
+        "Social"
+      ],
+      "secondary_riasec": [
+        "Enterprising"
+      ],
+      "work_style_demands": "Requires communication, follow-up discipline, and prioritization.",
+      "capability_stage": "Foundation",
+      "fitment_category": [
+        "Coordination",
+        "Communication"
+      ],
+      "fitment_confidence": [
+        "high",
+        "high"
+      ]
+    },
+    {
+      "id": "cap-uuid-003",
+      "code": "IND-CAP-03",
+      "name": "Inventory Tracking",
+      "description": "Ability to track stock movement, stock counts, and inventory records.",
+      "primary_riasec": [
+        "Realistic"
+      ],
+      "secondary_riasec": [
+        "Conventional"
+      ],
+      "work_style_demands": "Requires routine execution, accuracy, and checklist-based verification.",
+      "capability_stage": "Intermediate",
+      "fitment_category": [
+        "Inventory",
+        "Process"
+      ],
+      "fitment_confidence": [
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "id": "cap-uuid-004",
+      "code": "IND-CAP-04",
+      "name": "Transaction Verification",
+      "description": "Ability to review transactions and identify exceptions or mismatches.",
+      "primary_riasec": [
+        "Conventional"
+      ],
+      "secondary_riasec": [
+        "Investigative"
+      ],
+      "work_style_demands": "Requires numerical accuracy, confidentiality, and careful review.",
+      "capability_stage": "Intermediate",
+      "fitment_category": [
+        "Finance Operations",
+        "Quality Check"
+      ],
+      "fitment_confidence": [
+        "high",
+        "medium"
+      ]
+    }
+  ]
+}

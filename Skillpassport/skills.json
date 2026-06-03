@@ -1,0 +1,140 @@
+{
+  "table_name": "skills",
+  "description": "Skill master table. Each skill belongs to exactly one capability and breaks that capability into executable skill units.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "code",
+      "type": "text",
+      "required": true,
+      "unique": true,
+      "description": "Skill code. Example: IND-SK-001..188."
+    },
+    {
+      "name": "capability_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "capabilities.id",
+      "description": "Each skill maps to exactly one capability."
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "skill_type",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Skill category such as Documentation, Coordination, Analysis, Process, or similar."
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_skills_code_not_empty",
+      "type": "check",
+      "rule": "length(trim(code)) > 0"
+    },
+    {
+      "name": "chk_skills_name_not_empty",
+      "type": "check",
+      "rule": "length(trim(name)) > 0"
+    },
+    {
+      "name": "chk_skills_capability_id_not_null",
+      "type": "check",
+      "rule": "capability_id IS NOT NULL"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_skills_code",
+      "columns": [
+        "code"
+      ]
+    },
+    {
+      "name": "uq_skills_capability_name",
+      "columns": [
+        "capability_id",
+        "name"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_skills_code",
+      "columns": [
+        "code"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_skills_capability_id",
+      "columns": [
+        "capability_id"
+      ]
+    },
+    {
+      "name": "idx_skills_skill_type",
+      "columns": [
+        "skill_type"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "capabilities",
+      "local_key": "capability_id",
+      "foreign_key": "id"
+    }
+  ],
+  "sample_records": [
+    {
+      "id": "skill-uuid-001",
+      "code": "IND-SK-001",
+      "capability_id": "cap-uuid-001",
+      "name": "Document Data Entry",
+      "description": "Enter structured information into forms, sheets, or operational systems.",
+      "skill_type": "Documentation"
+    },
+    {
+      "id": "skill-uuid-002",
+      "code": "IND-SK-002",
+      "capability_id": "cap-uuid-001",
+      "name": "Record Verification",
+      "description": "Check records for completeness, duplicates, and missing details.",
+      "skill_type": "Documentation"
+    },
+    {
+      "id": "skill-uuid-003",
+      "code": "IND-SK-003",
+      "capability_id": "cap-uuid-002",
+      "name": "Follow-up Communication",
+      "description": "Send clear reminders and updates to stakeholders until closure.",
+      "skill_type": "Coordination"
+    },
+    {
+      "id": "skill-uuid-004",
+      "code": "IND-SK-004",
+      "capability_id": "cap-uuid-004",
+      "name": "Exception Flagging",
+      "description": "Identify transaction mismatches and route them for resolution.",
+      "skill_type": "Analysis"
+    }
+  ]
+}

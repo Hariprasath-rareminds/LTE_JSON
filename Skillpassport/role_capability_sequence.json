@@ -1,0 +1,243 @@
+{
+  "table_name": "role_capability_sequence",
+  "description": "Ordered learning plan table that maps each role to a domain-specific sequence of capabilities.",
+  "primary_key": "id",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "required": true,
+      "primary_key": true
+    },
+    {
+      "name": "role_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "roles.id"
+    },
+    {
+      "name": "domain_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "domains.id",
+      "description": "Context the step runs in."
+    },
+    {
+      "name": "capability_id",
+      "type": "uuid",
+      "required": true,
+      "foreign_key": "capabilities.id"
+    },
+    {
+      "name": "sequence_step",
+      "type": "int",
+      "required": true,
+      "description": "Ordered step number. Example: 1..N."
+    },
+    {
+      "name": "capability_priority",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Priority such as Core or Important."
+    },
+    {
+      "name": "required_level",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Required level such as L1, L2, or L3."
+    },
+    {
+      "name": "duration_weeks",
+      "type": "int",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "cumulative_weeks",
+      "type": "int",
+      "required": false,
+      "nullable": true
+    },
+    {
+      "name": "evidence_output",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Assessment artifact or evidence output."
+    },
+    {
+      "name": "why_here",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Sequencing rationale."
+    },
+    {
+      "name": "plan_phase",
+      "type": "text",
+      "required": false,
+      "nullable": true,
+      "description": "Plan phase such as Month 1-2, Month 3-4, or Month 5-6."
+    }
+  ],
+  "constraints": [
+    {
+      "name": "chk_rcs_sequence_step_positive",
+      "type": "check",
+      "rule": "sequence_step > 0"
+    },
+    {
+      "name": "chk_rcs_duration_weeks_positive",
+      "type": "check",
+      "rule": "duration_weeks IS NULL OR duration_weeks > 0"
+    },
+    {
+      "name": "chk_rcs_cumulative_weeks_positive",
+      "type": "check",
+      "rule": "cumulative_weeks IS NULL OR cumulative_weeks > 0"
+    },
+    {
+      "name": "chk_rcs_required_level_allowed",
+      "type": "check",
+      "rule": "required_level IS NULL OR required_level IN ('L1','L2','L3')"
+    },
+    {
+      "name": "chk_rcs_priority_allowed",
+      "type": "check",
+      "rule": "capability_priority IS NULL OR capability_priority IN ('Core','Important')"
+    }
+  ],
+  "unique_constraints": [
+    {
+      "name": "uq_rcs_role_domain_sequence",
+      "columns": [
+        "role_id",
+        "domain_id",
+        "sequence_step"
+      ]
+    },
+    {
+      "name": "uq_rcs_role_domain_capability",
+      "columns": [
+        "role_id",
+        "domain_id",
+        "capability_id"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_rcs_role_domain_sequence",
+      "columns": [
+        "role_id",
+        "domain_id",
+        "sequence_step"
+      ],
+      "type": "unique"
+    },
+    {
+      "name": "idx_rcs_role_id",
+      "columns": [
+        "role_id"
+      ]
+    },
+    {
+      "name": "idx_rcs_domain_id",
+      "columns": [
+        "domain_id"
+      ]
+    },
+    {
+      "name": "idx_rcs_capability_id",
+      "columns": [
+        "capability_id"
+      ]
+    },
+    {
+      "name": "idx_rcs_required_level",
+      "columns": [
+        "required_level"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "many_to_one",
+      "related_table": "roles",
+      "local_key": "role_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "domains",
+      "local_key": "domain_id",
+      "foreign_key": "id"
+    },
+    {
+      "type": "many_to_one",
+      "related_table": "capabilities",
+      "local_key": "capability_id",
+      "foreign_key": "id"
+    }
+  ],
+  "sample_records": [
+    {
+      "id": "rcs-uuid-001",
+      "role_id": "role-uuid-001",
+      "domain_id": "dom-uuid-001",
+      "capability_id": "cap-uuid-001",
+      "sequence_step": 1,
+      "capability_priority": "Core",
+      "required_level": "L1",
+      "duration_weeks": 3,
+      "cumulative_weeks": 3,
+      "evidence_output": "Completed patient support documentation checklist.",
+      "why_here": "Documentation accuracy is required before higher coordination tasks.",
+      "plan_phase": "Month 1-2"
+    },
+    {
+      "id": "rcs-uuid-002",
+      "role_id": "role-uuid-001",
+      "domain_id": "dom-uuid-001",
+      "capability_id": "cap-uuid-002",
+      "sequence_step": 2,
+      "capability_priority": "Important",
+      "required_level": "L2",
+      "duration_weeks": 4,
+      "cumulative_weeks": 7,
+      "evidence_output": "Stakeholder follow-up tracker with closure notes.",
+      "why_here": "Coordination should build on accurate records and case context.",
+      "plan_phase": "Month 1-2"
+    },
+    {
+      "id": "rcs-uuid-003",
+      "role_id": "role-uuid-003",
+      "domain_id": "dom-uuid-003",
+      "capability_id": "cap-uuid-003",
+      "sequence_step": 1,
+      "capability_priority": "Core",
+      "required_level": "L1",
+      "duration_weeks": 4,
+      "cumulative_weeks": 4,
+      "evidence_output": "Inventory count sheet and stock discrepancy log.",
+      "why_here": "Inventory tracking is the base capability for retail operations execution.",
+      "plan_phase": "Month 1-2"
+    },
+    {
+      "id": "rcs-uuid-004",
+      "role_id": "role-uuid-004",
+      "domain_id": "dom-uuid-004",
+      "capability_id": "cap-uuid-004",
+      "sequence_step": 1,
+      "capability_priority": "Core",
+      "required_level": "L2",
+      "duration_weeks": 5,
+      "cumulative_weeks": 5,
+      "evidence_output": "Transaction review report with flagged exceptions.",
+      "why_here": "Verification is required before reconciliation and exception resolution.",
+      "plan_phase": "Month 1-2"
+    }
+  ]
+}
